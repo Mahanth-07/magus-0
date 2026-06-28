@@ -26,6 +26,24 @@ def test_decision_defaults_action_args():
     assert d.action_args.duration_ms == 200
 
 
+def test_decision_defaults_empty_actions():
+    d = Decision(
+        scene_summary="s", controlled_entity="c", current_subgoal="g",
+        action="wait", expected_result="e", reason="r", confidence=0.5,
+    )
+    assert d.actions == []
+
+
+def test_decision_parses_actions_sequence():
+    d = Decision(
+        scene_summary="s", controlled_entity="c", current_subgoal="g",
+        action="drop", actions=["left", "left", "rotate", "drop"],
+        expected_result="e", reason="r", confidence=0.7,
+    )
+    assert d.actions == ["left", "left", "rotate", "drop"]
+    assert d.action == "drop"
+
+
 def test_decision_rejects_out_of_range_confidence():
     with pytest.raises(ValidationError):
         Decision(

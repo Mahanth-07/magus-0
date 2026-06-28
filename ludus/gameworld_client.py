@@ -213,6 +213,19 @@ class GameWorldClient:
         await kb.up(key)
         await asyncio.sleep(0.1)
 
+    def pause(self) -> None:
+        """Freeze time-based game hooks (gravity etc.) during model inference.
+
+        Mirrors GameWorld's coordinator pause_during_inference behavior so a
+        falling Tetris piece doesn't lock before a positioning sequence lands.
+        """
+        self._ensure_started()
+        self._submit(self._mgr.pause_game())
+
+    def resume(self) -> None:
+        self._ensure_started()
+        self._submit(self._mgr.resume_game())
+
     def read_partner_actions(self) -> list[str]:
         self._ensure_started()
         return self._submit(self._read_partner_actions())

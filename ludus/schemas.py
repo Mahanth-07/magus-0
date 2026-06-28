@@ -12,6 +12,7 @@ class Decision(BaseModel):
     controlled_entity: str
     current_subgoal: str
     action: str
+    actions: list[str] = Field(default_factory=list)
     action_args: ActionArgs = Field(default_factory=ActionArgs)
     expected_result: str
     reason: str

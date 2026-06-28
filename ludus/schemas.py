@@ -52,3 +52,4 @@ class EpisodeResult(BaseModel):
     legal_action_rate: float
     final_metrics: dict[str, float]
     rules: list[str]
+    errored_steps: int = 0

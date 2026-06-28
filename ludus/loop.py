@@ -1,6 +1,10 @@
+import logging
+
 from ludus.schemas import PlannerContext, StepRecord, EpisodeResult
 from ludus.outcome import OutcomeDetector
 from ludus.reflection import Reflector
+
+log = logging.getLogger("ludus.loop")
 
 
 def run_episode(
@@ -14,6 +18,7 @@ def run_episode(
     use_memory = mode == "memory"
 
     legal_count = 0
+    errored = 0
     recent_outcomes: list[str] = []
     last_metrics: dict[str, float] = {}
 
@@ -41,10 +46,19 @@ def run_episode(
                                     if hasattr(gameworld, "read_partner_actions") else []),
             state_text=(gameworld.state_text() if hasattr(gameworld, "state_text") else ""),
         )
-        decision = provider.decide(ctx)
-
-        if can_pause:
-            gameworld.resume()
+        # A single transient model-call failure must not kill the whole episode
+        # (long runs / slow reasoning models / dedicated endpoints occasionally
+        # hiccup). Skip the step and continue; `finally` always unpauses.
+        try:
+            decision = provider.decide(ctx)
+        except Exception as exc:
+            log.warning("step %d: provider.decide() failed (%s); skipping step", i, exc)
+            errored += 1
+            recent_outcomes.append(f"(step {i} errored: {type(exc).__name__})")
+            continue
+        finally:
+            if can_pause:
+                gameworld.resume()
 
         # `actions` is an optional ordered macro (1-5 moves to position then
         # commit); fall back to the single primary `action`. Outcome attribution
@@ -75,10 +89,15 @@ def run_episode(
         ))
         recent_outcomes.append(f"{decision.action} -> {outcome.summary}")
 
+    # legal-action rate is over ATTEMPTED steps (those where the model returned a
+    # decision); errored/skipped steps are excluded so a flaky API doesn't look
+    # like illegal play.
+    attempted = max_steps - errored
     result = EpisodeResult(
         episode_id=episode_id, game=adapter.name, mode=mode, steps=max_steps,
-        legal_action_rate=(legal_count / max_steps) if max_steps else 0.0,
+        legal_action_rate=(legal_count / attempted) if attempted > 0 else 0.0,
         final_metrics=last_metrics, rules=rulebook.rules(),
+        errored_steps=errored,
     )
     store.save_episode(result)
     return result

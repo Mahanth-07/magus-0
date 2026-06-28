@@ -119,3 +119,41 @@ def test_loop_flags_illegal_action(tmp_path):
         mode="baseline", max_steps=1, episode_id="ep-illegal",
     )
     assert result.legal_action_rate == 0.0
+
+
+class _FlakyProvider:
+    """Raises on the given (0-based) call indices, else returns a legal Decision.
+
+    Simulates a transient model-call failure mid-episode.
+    """
+
+    def __init__(self, fail_on, action="left"):
+        self._fail_on = set(fail_on)
+        self._action = action
+        self._i = -1
+
+    def decide(self, ctx):
+        self._i += 1
+        if self._i in self._fail_on:
+            raise RuntimeError("transient gateway 500")
+        from ludus.schemas import Decision
+        return Decision(
+            scene_summary="s", controlled_entity="c", current_subgoal="g",
+            action=self._action, expected_result="e", reason="r", confidence=0.9,
+        )
+
+
+def test_loop_survives_transient_decide_failure(tmp_path):
+    # One failed decide() must NOT crash the episode: it's skipped, counted, and
+    # excluded from the legal-action denominator.
+    gw = FakeGameWorld(metric_script=[{"holes": 2.0}] * 4)
+    result = run_episode(
+        adapter=_TetrisLikeAdapter(),
+        provider=_FlakyProvider(fail_on=[1], action="left"),
+        gameworld=gw, store=LocalStore(root=tmp_path), rulebook=Rulebook(),
+        mode="baseline", max_steps=3, episode_id="ep-flaky",
+    )
+    assert result.steps == 3
+    assert result.errored_steps == 1
+    assert result.legal_action_rate == 1.0          # 2 attempted, both legal
+    assert len(gw.applied) == 2                      # only successful steps applied

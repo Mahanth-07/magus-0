@@ -45,6 +45,18 @@ def test_loop_memory_mode_learns_rule(tmp_path):
     assert len(result.rules) >= 1                    # memory mode learns
 
 
+def test_loop_memory_no_rule_from_illegal_action(tmp_path):
+    gw = FakeGameWorld(metric_script=[{"holes": 3.0}, {"holes": 3.0}])
+    rb = Rulebook()
+    result = run_episode(
+        adapter=_TetrisLikeAdapter(), provider=MockProvider(script=["jump"]),  # illegal
+        gameworld=gw, store=LocalStore(root=tmp_path), rulebook=rb,
+        mode="memory", max_steps=1, episode_id="ep-illegal-mem",
+    )
+    assert result.legal_action_rate == 0.0
+    assert result.rules == []   # illegal action must not produce a learned rule
+
+
 def test_loop_flags_illegal_action(tmp_path):
     gw = FakeGameWorld(metric_script=[{"holes": 1.0}, {"holes": 1.0}])
     result = run_episode(

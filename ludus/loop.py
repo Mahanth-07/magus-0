@@ -40,7 +40,7 @@ def run_episode(
         last_metrics = post
 
         rule_added = None
-        if use_memory:
+        if use_memory and is_legal:
             rule_added = reflector.reflect(decision, outcome, adapter.name)
             rulebook.add(rule_added)
 

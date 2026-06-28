@@ -22,20 +22,41 @@ _SYSTEM = (
 
 
 def build_prompt(ctx: PlannerContext) -> str:
+    state_section = f"Game state:\n{ctx.state_text}\n" if ctx.state_text else ""
     return (
         f"{_SYSTEM}\n\nObjective: {ctx.objective}\n"
         f"Legal actions: {', '.join(ctx.legal_actions)}\n"
-        f"Recent outcomes:\n" + ("\n".join(ctx.recent_outcomes) or "(none)") + "\n"
+        + state_section
+        + f"Recent outcomes:\n" + ("\n".join(ctx.recent_outcomes) or "(none)") + "\n"
         f"Partner recent actions:\n" + ("\n".join(ctx.partner_recent_actions) or "(none)") + "\n"
         f"Learned rules:\n{ctx.learned_rules or '(none)'}\n"
     )
+
+
+def _coerce_confidence(data: dict) -> dict:
+    """Normalize a model-emitted confidence into [0.0, 1.0].
+
+    Stronger models sometimes return 0-100 scale (e.g. 95) or slightly-over-1
+    values. If confidence is a number > 1 and <= 100, treat it as a percentage
+    (divide by 100); then clamp into [0.0, 1.0]. Non-numeric/missing values are
+    left untouched so Pydantic surfaces the original error.
+    """
+    conf = data.get("confidence")
+    if isinstance(conf, (int, float)) and not isinstance(conf, bool):
+        # A value clearly on a 0-100 scale (>= 10) is treated as a percentage and
+        # divided by 100 (e.g. 95 -> 0.95). Values only slightly over 1 (e.g. 3.0)
+        # are a model overshoot, not a percentage, so they just clamp to 1.0.
+        if 10 <= conf <= 100:
+            conf = conf / 100.0
+        data["confidence"] = max(0.0, min(1.0, float(conf)))
+    return data
 
 
 def parse_decision(raw: str) -> Decision:
     m = re.search(r"\{.*\}", raw, re.DOTALL)
     if not m:
         raise ValueError(f"no JSON object in model output: {raw[:200]}")
-    return Decision.model_validate(json.loads(m.group(0)))
+    return Decision.model_validate(_coerce_confidence(json.loads(m.group(0))))
 
 
 class InsForgeGatewayProvider:

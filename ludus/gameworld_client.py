@@ -72,6 +72,85 @@ _METRIC_PATHS: dict[str, list[str]] = {
 }
 
 
+def _tetris_state_text(state: dict) -> str:
+    """Render a compact board summary from a Tetris getState() dict.
+
+    Derives per-column heights + hole count from the raw board grid
+    (game_state.environment.board: rows x cols of 0/1, row 0 = top). Also reports
+    current/next/held piece and key metrics when present. Returns "" if there's no
+    board grid (e.g. non-Tetris game, or a loading state), making it a safe no-op.
+    """
+    env = _get_nested(state, "game_state.environment") or {}
+    board = env.get("board")
+    if not (isinstance(board, list) and board and isinstance(board[0], list)):
+        return ""
+
+    rows = len(board)
+    cols = len(board[0])
+
+    # The board grid includes the ACTIVE falling piece. For settled-stack analysis
+    # (column heights + holes) we exclude the active piece's cells so the numbers
+    # describe what's already locked down, not the in-flight piece.
+    player = _get_nested(state, "game_state.player") or {}
+    active = set()
+    if isinstance(player, dict):
+        for b in (player.get("blocks") or []):
+            if isinstance(b, dict):
+                x, y = b.get("x"), b.get("y")
+                if isinstance(x, int) and isinstance(y, int):
+                    active.add((y, x))
+
+    heights = [0] * cols
+    holes = 0
+    for c in range(cols):
+        seen_block = False
+        col_holes = 0
+        for r in range(rows):
+            cell = board[r][c] and (r, c) not in active
+            if cell:
+                if not seen_block:
+                    heights[c] = rows - r  # height measured from the floor
+                    seen_block = True
+            elif seen_block:
+                col_holes += 1
+        holes += col_holes
+
+    lines: list[str] = []
+
+    cur = player.get("shape") if isinstance(player, dict) else None
+    preview = env.get("preview_queue")
+    held = env.get("held_piece")
+    piece_bits = []
+    if cur:
+        piece_bits.append(f"current={cur}")
+        if active:
+            xs = sorted({x for (_, x) in active})
+            piece_bits.append(f"at_cols={'-'.join(str(x) for x in xs)}")
+    if isinstance(preview, list) and preview:
+        nxt = ",".join(str(p) for p in preview[:3] if p is not None)
+        if nxt:
+            piece_bits.append(f"next=[{nxt}]")
+    if held:
+        piece_bits.append(f"held={held}")
+    if piece_bits:
+        lines.append(" ".join(piece_bits))
+
+    lines.append(f"Board {cols}x{rows} (col heights, 0=empty, left->right):")
+    lines.append(" ".join(str(h) for h in heights))
+    lines.append(f"Aggregate height={sum(heights)} max={max(heights)} holes={holes}")
+
+    metrics = state.get("metrics") or {}
+    metric_bits = []
+    for key in ("score", "level", "lines_remaining"):
+        v = metrics.get(key)
+        if isinstance(v, (int, float)):
+            metric_bits.append(f"{key}={int(v)}")
+    if metric_bits:
+        lines.append(" ".join(metric_bits))
+
+    return "\n".join(lines)
+
+
 class GameWorldClient:
     """Real GameWorld driving client. Same interface as FakeGameWorld."""
 
@@ -226,6 +305,17 @@ class GameWorldClient:
         self._ensure_started()
         self._submit(self._mgr.resume_game())
 
+    def state_text(self) -> str:
+        """Compact textual board summary from getState(), for the planner prompt.
+
+        Lets the model reason about placement numerically (column heights, holes)
+        instead of reading pixels. Empty string for non-Tetris games / states with
+        no board grid, so it's a no-op there.
+        """
+        self._ensure_started()
+        state = self._submit(self._mgr.get_game_state()) or {}
+        return _tetris_state_text(state)
+
     def read_partner_actions(self) -> list[str]:
         self._ensure_started()
         return self._submit(self._read_partner_actions())
@@ -290,3 +380,6 @@ class FakeGameWorld:
 
     def read_partner_actions(self) -> list[str]:
         return []  # FakeGameWorld: no human partner.
+
+    def state_text(self) -> str:
+        return ""

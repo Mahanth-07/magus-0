@@ -39,6 +39,7 @@ def run_episode(
             screenshot_png=png,
             partner_recent_actions=(gameworld.read_partner_actions()
                                     if hasattr(gameworld, "read_partner_actions") else []),
+            state_text=(gameworld.state_text() if hasattr(gameworld, "state_text") else ""),
         )
         decision = provider.decide(ctx)
 

@@ -27,6 +27,7 @@ class PlannerContext(BaseModel):
     learned_rules: str = ""
     screenshot_png: bytes = b""
     partner_recent_actions: list[str] = Field(default_factory=list)
+    state_text: str = ""
 
 
 class StepRecord(BaseModel):

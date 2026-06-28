@@ -71,3 +71,17 @@ def test_planner_context_round_trips_screenshot_bytes():
     )
     assert ctx.legal_actions == ["left", "right", "drop"]
     assert ctx.screenshot_png.startswith(b"\x89PNG")
+
+
+def test_planner_context_state_text_round_trips():
+    ctx = PlannerContext(
+        objective="place pieces",
+        legal_actions=["left", "right", "drop"],
+        state_text="col heights: 1 2 0\nholes=0",
+    )
+    assert ctx.state_text == "col heights: 1 2 0\nholes=0"
+
+
+def test_planner_context_state_text_defaults_empty():
+    ctx = PlannerContext(objective="o", legal_actions=["a"])
+    assert ctx.state_text == ""

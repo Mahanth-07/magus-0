@@ -2,32 +2,210 @@
 
 FakeGameWorld is the offline test double (no browser). GameWorldClient (Phase 5)
 wraps the REAL GameWorld API discovered in docs/DISCOVERY.md and exposes the same
-three methods: screenshot() -> bytes, metrics(keys) -> dict, apply(command) -> None.
+synchronous methods used by ludus.loop.run_episode:
+
+    screenshot() -> bytes
+    metrics(keys) -> dict[str, float]
+    apply(command) -> None        # command = {"key": <playwright key>, "duration_ms": int}
+    read_partner_actions() -> list[str]
+
+GameWorld is asyncio-only (Playwright + an http.server-served HTML5 game). We bridge
+async -> sync by owning a single private event loop running on a dedicated background
+thread; every public method submits a coroutine to that loop via
+asyncio.run_coroutine_threadsafe(...).result(). Keeping ONE long-lived loop (rather
+than asyncio.run per call) is required: all Playwright objects (browser/context/page)
+are bound to the loop that created them, so the browser must live for the loop's life.
 """
+
+import asyncio
+import sys
+import threading
+
+# GameWorld is run-as-scripts-from-repo-root (no pip package); put its root on sys.path
+# so `from env... import ...` / `from catalog... import ...` resolve. See DISCOVERY.md §0.
+_GAMEWORLD_ROOT = "/Users/mahanth/ludus/gameworld"
+if _GAMEWORLD_ROOT not in sys.path:
+    sys.path.insert(0, _GAMEWORLD_ROOT)
+
+
+def _find_free_port() -> int:
+    """Bind to port 0 and let the OS hand back a free TCP port."""
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def _get_nested(state: dict, dotted: str):
+    """Resolve a dot-path (e.g. 'game_state.score') against a nested dict; None if missing."""
+    cur = state
+    for part in dotted.split("."):
+        if not isinstance(cur, dict) or part not in cur:
+            return None
+        cur = cur[part]
+    return cur
+
+
+# Where in window.gameAPI.getState() each logical metric key lives. We try the dot-path
+# variants in order and take the first that resolves to a finite number. Covers the
+# Tetris state shape (game_state.score / metrics.score / metrics.* / completion_progress)
+# while staying generic enough that unknown keys fall back to a top-level / metrics lookup.
+_METRIC_PATHS: dict[str, list[str]] = {
+    "score": ["game_state.score", "metrics.score", "metrics.primary_score"],
+    "level": ["game_state.level", "metrics.level"],
+    "lines": ["metrics.lines_remaining"],
+    "lines_remaining": ["metrics.lines_remaining"],
+    "lines_target": ["metrics.lines_target"],
+    "height": ["metrics.occupied_cells"],
+    "occupied_cells": ["metrics.occupied_cells"],
+    "completion_progress": ["game_state.completion_progress"],
+}
 
 
 class GameWorldClient:
-    """Real GameWorld driving client. Methods to be filled from docs/DISCOVERY.md after Phase 0.
-    Same interface as FakeGameWorld: screenshot()->bytes, metrics(keys)->dict, apply(command)->None."""
+    """Real GameWorld driving client. Same interface as FakeGameWorld."""
 
-    def __init__(self, game_id: str, timing_ms: int, headless: bool = True) -> None:
+    def __init__(
+        self,
+        game_id: str,
+        timing_ms: int,
+        headless: bool = True,
+        port: int | None = None,
+    ) -> None:
         self.game_id = game_id
         self.timing_ms = timing_ms
         self.headless = headless
+        self._port = port
 
-    def _not_ready(self):
-        raise NotImplementedError(
-            "GameWorldClient not yet implemented — fill from docs/DISCOVERY.md (Phase 0). Use --fake for now."
+        self._launcher = None
+        self._mgr = None
+        self._started = False
+
+        # Dedicated event loop on a background thread (the async bridge).
+        self._loop = asyncio.new_event_loop()
+        self._thread = threading.Thread(target=self._run_loop, daemon=True)
+        self._thread.start()
+
+    # --- async bridge ---------------------------------------------------------
+
+    def _run_loop(self) -> None:
+        asyncio.set_event_loop(self._loop)
+        self._loop.run_forever()
+
+    def _submit(self, coro):
+        """Run a coroutine on the private loop from the (sync) caller thread."""
+        return asyncio.run_coroutine_threadsafe(coro, self._loop).result()
+
+    # --- lifecycle ------------------------------------------------------------
+
+    async def _connect(self) -> None:
+        from catalog.games import resolve_game_id, load_game
+        from env.game_launcher import GameLauncher
+        from env.browser_manager import BrowserConfig, BrowserGameManager
+
+        gid = resolve_game_id(self.game_id)
+        game = load_game(gid)
+        port = self._port or _find_free_port()
+
+        self._launcher = GameLauncher(game_name=game.game_name, port=port)
+        game_url = self._launcher.start()
+
+        self._mgr = BrowserGameManager(
+            BrowserConfig(
+                game_url=game_url,
+                width=game.width,
+                height=game.height,
+                headless=self.headless,
+                speed_multiplier=game.speed_multiplier,
+            )
         )
+        await self._mgr.start()
+        # Gate on real readiness (status in {ready, playing}) before any input.
+        await self._mgr.wait_until_actionable(stage="boot")
+
+        # Partner-action recorder (no-op until a human drives the page; real impl later).
+        await self._mgr.page.evaluate(
+            "() => { if (!window.__humanKeys) { window.__humanKeys = [];"
+            " window.addEventListener('keydown',"
+            " e => window.__humanKeys.push(e.key), true); } }"
+        )
+        self._started = True
+
+    def _ensure_started(self) -> None:
+        if not self._started:
+            self._submit(self._connect())
+
+    # --- public sync API (matches FakeGameWorld) ------------------------------
 
     def screenshot(self) -> bytes:
-        self._not_ready()
+        self._ensure_started()
+        return self._submit(self._screenshot())
+
+    async def _screenshot(self) -> bytes:
+        # Raw Playwright path returns PNG bytes directly (no temp file to clean up).
+        return await self._mgr.page.screenshot()
 
     def metrics(self, keys: list[str]) -> dict[str, float]:
-        self._not_ready()
+        self._ensure_started()
+        return self._submit(self._metrics(keys))
+
+    async def _metrics(self, keys: list[str]) -> dict[str, float]:
+        state = await self._mgr.get_game_state() or {}
+        out: dict[str, float] = {}
+        for key in keys:
+            value = None
+            for path in _METRIC_PATHS.get(key, [key, f"metrics.{key}", f"game_state.{key}"]):
+                value = _get_nested(state, path)
+                if isinstance(value, (int, float)):
+                    break
+            out[key] = float(value) if isinstance(value, (int, float)) else 0.0
+        return out
 
     def apply(self, command: dict) -> None:
-        self._not_ready()
+        self._ensure_started()
+        self._submit(self._apply(command))
+
+    async def _apply(self, command: dict) -> None:
+        key = command["key"]
+        duration_ms = command.get("duration_ms") or self.timing_ms
+        kb = self._mgr.page.keyboard
+        # Press the key held for duration_ms (down -> wait -> up), as the real game's
+        # jaws.js input loop polls held keys; then let the game tick a moment so the
+        # next screenshot/state read reflects the input.
+        await kb.down(key)
+        await asyncio.sleep(duration_ms / 1000.0)
+        await kb.up(key)
+        await asyncio.sleep(0.1)
+
+    def read_partner_actions(self) -> list[str]:
+        # Real impl is a later phase; return [] for now per the contract.
+        return []
+
+    def close(self) -> None:
+        if self._started and self._mgr is not None:
+            try:
+                self._submit(self._mgr.close())
+            except Exception:
+                pass
+        if self._launcher is not None:
+            try:
+                self._launcher.stop()
+            except Exception:
+                pass
+        self._started = False
+        # Tear down the private loop + thread.
+        try:
+            self._loop.call_soon_threadsafe(self._loop.stop)
+            self._thread.join(timeout=5)
+        except Exception:
+            pass
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
 
 
 class FakeGameWorld:

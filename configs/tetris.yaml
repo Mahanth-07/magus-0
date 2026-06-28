@@ -1,9 +1,11 @@
-# VALUES TO VERIFY against docs/DISCOVERY.md after Phase 0 (legal_actions, metric names, control keys, timing).
+# Reconciled to the REAL 29_tetris game (games/benchmark/29_tetris): control keys verified
+# by observing the active piece move (ArrowLeft/Right shift x; x rotates; Space hard-drops and
+# scores), and metric keys verified against window.gameAPI.getState() (game_state.score etc).
 name: tetris
-objective: place pieces, minimize holes; clear a line when possible
+objective: place pieces, clear lines, maximize score; keep the board playable
 legal_actions: [left, right, rotate, drop]
-primary_metric: holes
-higher_is_better: false
-timing_ms: 250
-control_map: {left: ArrowLeft, right: ArrowRight, rotate: ArrowUp, drop: Space}
-relevant_metrics: [holes, lines, height]
+primary_metric: score
+higher_is_better: true
+timing_ms: 120
+control_map: {left: ArrowLeft, right: ArrowRight, rotate: x, drop: Space}
+relevant_metrics: [score, level, lines_remaining, occupied_cells]

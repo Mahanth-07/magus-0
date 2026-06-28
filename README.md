@@ -6,9 +6,11 @@
 
 ## Thesis
 
-One shared brain — one planner, one rulebook — plays multiple games from screenshots alone. The agent emits semantic actions, predicts each outcome, reflects on prediction error to learn compact rules, and reuses them in later steps. Every decision, prediction, outcome, and screenshot is persisted to InsForge.
+One shared planner (general) + a learning loop to make it expert (skilled).
 
-Whether learned memory *beats* the no-rules baseline is measured directly on state-verifiable metrics (score, kills, health, diamonds) rather than asserted — see **Results** below for the honest, mixed findings and what they reveal about the reflection design.
+The agent drives multiple GameWorld browser games from screenshots + a textual board summary alone. It emits ordered action sequences, predicts each outcome, reflects on prediction error to accumulate compact rules, and persists every decision, prediction, outcome, and screenshot to InsForge.
+
+In parallel, a **π0-style distillation loop** uses a classical expert teacher to generate training labels, fine-tunes a small LLM via LoRA, and targets a student that can play at near-teacher level without calling a frontier model at inference time. The honest bound: imitation distillation can *match* the teacher, not beat it — surpassing the teacher requires RL with the game's verifiable reward signal, a future direction.
 
 ---
 
@@ -18,14 +20,15 @@ Whether learned memory *beats* the no-rules baseline is measured directly on sta
 ┌──────────────────────────────────────────────────────────────┐
 │                        run_episode loop                       │
 │                                                              │
-│  Screenshot ──► PlannerContext ──► ModelProvider.decide()    │
-│                     │                      │                 │
-│              legal_actions          Decision (action,        │
-│              learned_rules           expected_result,        │
-│              recent_outcomes         confidence)             │
-│                                           │                  │
-│                             GameWorldClient.apply(action)    │
-│                                           │                  │
+│  Screenshot + state_text ──► PlannerContext ──► ModelProvider.decide()  │
+│                                   │                    │     │
+│                           legal_actions         Decision:    │
+│                           learned_rules           action     │
+│                           recent_outcomes         actions[]  │
+│                           board state_text        confidence │
+│                                                       │      │
+│                    [pause] → actions macro applied → [resume]│
+│                                                       │      │
 │                              new screenshot + metric delta   │
 │                                           │                  │
 │                                 OutcomeDetector              │
@@ -45,9 +48,11 @@ Whether learned memory *beats* the no-rules baseline is measured directly on sta
 **Key design decisions:**
 
 - **Thin adapters.** Each game provides only legal actions, control mappings, and metric extraction — zero strategy. The planner is entirely game-agnostic.
+- **Board-state text alongside screenshots.** `GameWorldClient.state_text()` derives column heights, hole count, current/next/held piece from `window.gameAPI.getState()` and injects it as `PlannerContext.state_text`. Placement becomes arithmetic, not pixel-guessing.
+- **Action sequences.** `Decision.actions` carries an ordered macro (e.g. `["left","left","rotate","drop"]`) applied atomically per turn. The loop pauses game gravity during inference and the action sequence, so a piece isn't locked mid-positioning.
 - **Pydantic contracts everywhere.** `Decision`, `PlannerContext`, `StepRecord`, `EpisodeResult` — all typed, all validated.
 - **Dual-write persistence.** Local store is always required; InsForge write is best-effort. A failed InsForge write logs a warning but never aborts the run.
-- **Survival hedge.** The entire loop is proven offline: 43 tests, `MockProvider` + `FakeGameWorld`, zero network.
+- **Proven offline.** The entire loop is verified offline: 92 tests, `MockProvider` + `FakeGameWorld`, zero network.
 
 ---
 
@@ -57,52 +62,104 @@ Whether learned memory *beats* the no-rules baseline is measured directly on sta
 |---|---|
 | **Postgres** | One row per step (`StepRecord`) — decision, metrics, rule learned, screenshot reference. One `EpisodeResult` per run. |
 | **S3** | Per-step screenshots (`step_XXXX.png`) alongside the JSONL trace. |
-| **Model gateway** | `InsForgeGatewayProvider` sends screenshot + prompt to the InsForge vision endpoint; receives a structured `Decision`. |
+| **Model gateway** | `InsForgeGatewayProvider` sends screenshot + board state text + prompt to the InsForge vision endpoint; receives a structured `Decision`. |
 
 `DualWriteStore` wraps `LocalStore` (always) + `InsForgeStore` (best-effort). `FallbackProvider` tries InsForge gateway → Anthropic → Mock in order, logging a `WARNING` on degradation so a misconfigured run is never silent.
 
 ---
 
-## Verified live evidence
+## Results
 
-### Tetris
+### Zero-shot baseline: gpt-4o-mini (no board state, single actions)
 
-Score climbs across steps; pieces respond to left/right/rotate/drop key sequences. Metric: `score` + `lines_remaining`.
+Real run, `scripts/experiment.sh`, 12 steps, gpt-4o-mini via the InsForge gateway.
 
-### Wolf3D
+| Game | Mode | Primary metric | Notes |
+|---|---|---|---|
+| Tetris | baseline | **score 66** | pixel-only; no board summary |
+| Tetris | memory | score 44 | memory hurt (see confounds below) |
+| Wolf3D | baseline | health 0 (died) | took fire, health dropped to 0 |
+| Wolf3D | memory | **health 100** | memory helped — survived the run |
 
-Ammo drops 8 → 4 on attack actions (confirmed by metric delta). Guard returns fire: `health` 100 → 90. Metrics: `kills`, `health`, `ammo`, `lives`.
+### With board-state text + action sequences: gemini-2.5-flash
 
-### Fireboy & Watergirl (co-op)
+Switching the model to `google/gemini-2.5-flash` via the InsForge gateway, adding `state_text` (column heights, holes, current/next piece), and issuing action-sequence macros per turn:
 
-Agent controls Watergirl (a/d/w keys); Fireboy arrows captured by a partner-key recorder. Watergirl traverses the level. Metric: `score` (diamonds collected).
+| Game | Result |
+|---|---|
+| Tetris | **score ~238** vs 66 zero-shot baseline |
+
+The jump from 66 to ~238 comes from three compounding improvements: a stronger reasoning model, arithmetic placement via board state, and atomic multi-move positioning that avoids pieces locking at spawn.
+
+### Expert teacher: Dellacherie heuristic
+
+The `ludus/teacher/tetris_heuristic.py` heuristic (Tetris only) enumerates all rotation × column placements, simulates the drop, scores by holes/height/bumpiness/lines, and picks the best. It exists as a label source, not the product.
+
+| | Score |
+|---|---|
+| Teacher self-play | **~27,000–100,000+**, ~0 holes |
+
+### Distillation student: LoRA fine-tuned Llama-3.2-3B-Instruct
+
+~510 expert self-play examples collected via `scripts/collect_dataset.py`, exported to text SFT format (`scripts/export_nebius.py`), and LoRA fine-tuned on Nebius AI Studio (`scripts/finetune_nebius.py`). The fine-tune succeeded. **A/B evaluation (student vs gemini-flash vs teacher) is in progress — numbers pending.**
+
+**Imitation ceiling:** the student learns to imitate the teacher; its ceiling is the teacher's performance (~27k+). Beating the teacher requires RL/self-play with the game's verifiable score signal — a future direction.
+
+### Honest read on the baseline experiment
+
+The memory vs baseline results are mixed, not a clean win:
+
+- **Wolf3D — memory helped.** Baseline health → 0 (died); memory agent finished at 100.
+- **Tetris — memory hurt** (44 < 66). Three real confounds:
+  1. **Within-episode only.** Rules accumulate within a single run; there is no cross-episode persistence yet.
+  2. **Tiny sample.** One 12-step trial per cell; a non-deterministic vision model means results are not averaged over seeds.
+  3. **Blunt reflection.** The metric-based `Reflector` emits generic rules ("action X did not improve score"). In Tetris — where most non-drop moves never change `score` — this floods the rulebook and suppresses useful actions.
+
+What the experiment *does* prove: the loop runs end-to-end on real games via real vision, structured output was 100% legal-action compliant in every run, and every step is persisted to InsForge.
 
 ---
 
-## Results: baseline vs memory
+## Learning loop (π0-style distillation)
 
-Real run, `scripts/experiment.sh`, 12 steps each, **gpt-4o-mini vision via the InsForge gateway**. All decisions/outcomes/screenshots were persisted to InsForge during these runs.
+The goal is a general AND skilled agent: generality from one shared planner across games; skill from a distillation loop that uses expert demonstrations as training signal.
 
-| Game | Mode | Primary metric | Secondary | Legal-action rate | Rules learned |
-|---|---|---|---|---|---|
-| Tetris | baseline | **score 66** | 14 cells | 100% | 0 |
-| Tetris | memory | score 44 | 10 cells | 100% | 3 |
-| Wolf3D | baseline | kills 0 | **health 0 (died)** | 100% | 0 |
-| Wolf3D | memory | kills 0 | **health 100 (preserved)** | 100% | 5 |
+```
+Expert teacher (tetris_heuristic) ──► self-play
+        │
+        ▼
+Dataset collection (scripts/collect_dataset.py)
+  pairs: screenshot + state_text + objective + legal_actions ──► teacher Decision (action macro)
+        │
+        ▼
+Export to SFT format (scripts/export_nebius.py)
+  text mode: board reaches student via state_text, no image (Llama-3.2-3B-Instruct)
+  vision mode: full multimodal (screenshot + text)
+        │
+        ▼
+LoRA fine-tune on Nebius AI Studio (scripts/finetune_nebius.py)
+  model: meta-llama/Llama-3.2-3B-Instruct
+  dataset: ~510 expert placements
+  status: SUCCEEDED
+        │
+        ▼
+Serve the adapter (NebiusProvider, --provider nebius, NEBIUS_MODEL=<ft-model-id>)
+  text-only student: NEBIUS_MULTIMODAL=0
+        │
+        ▼
+A/B eval: student vs gemini-2.5-flash vs teacher   ← IN PROGRESS
+```
 
-**Honest read.** The results are mixed, not a clean memory win:
+**Generality note:** the Dellacherie teacher is Tetris-specific. The path to a general-purpose skilled agent (true π0-style) is multi-game distillation using a strong frontier VLM as a universal teacher across many games — the roadmap, not yet built.
 
-- **Wolf3D — memory helped.** The baseline agent's health dropped to 0 (it took fire); the memory agent finished with full health (100), directly matching the "preserve health" objective. Neither scored a kill at this step budget.
-- **Tetris — memory hurt** (44 < 66). Memory learned 3 rules but scored lower.
-- **Structured output never failed** — 100% legal-action rate in every run; the planner always returned a parseable `Decision`.
+---
 
-**Why "memory beats baseline" is not cleanly shown here — three real confounds:**
+## Roadmap
 
-1. **Within-episode only.** Each run starts with a *fresh* rulebook; rules learned in early steps only help later steps of the *same* 12-step run. There is no cross-episode accumulation yet.
-2. **Tiny sample.** One 12-step trial per cell, with a non-deterministic vision model. No averaging over seeds/trials.
-3. **Blunt reflection.** This build uses the spec's cut-down **metric-based** `Reflector`, which emits generic "action X did not improve <metric>; try an alternative" rules. In Tetris — where most non-drop moves never change `score` — that floods the rulebook with discouraging rules that can suppress useful actions. The spec's **model-based** reflection (deferred) would phrase sharper, situational rules.
-
-**What the experiment *does* prove:** the full learn-and-reuse loop runs end-to-end on real games via real vision, the rulebook genuinely accumulates and feeds back, structured outputs are robust, and every step is persisted to InsForge. The harness can now answer "does memory help?" empirically — the next step to make it a clean win is cross-episode rule persistence + model-based reflection + multi-trial averaging.
+1. **Deploy student + A/B** — serve the LoRA adapter via `NebiusProvider`, run A/B (student vs gemini-flash vs teacher) on Tetris, report numbers.
+2. **Cross-episode rule persistence** — persist the rulebook across runs so reflection compounds over time.
+3. **Multi-game distillation** — build teachers for Wolf3D and Fireboy & Watergirl; collect multi-game SFT data; fine-tune a shared student.
+4. **RL to surpass the teacher** — use the game's verifiable score signal (PPO or similar) to push past the imitation ceiling.
+5. **Model-based reflection** — replace the blunt metric-based `Reflector` with a model-authored situational rule, sharper than "action X did not improve score."
 
 ---
 
@@ -132,21 +189,27 @@ Offline (tests + `--fake`) needs only step 1. Live runs need all three + a `.env
 
 ```bash
 source .venv/bin/activate
-pytest -v                                              # 43 tests, all offline
+pytest -v --ignore=infra                              # 92 tests, all offline
 python -m ludus.cli tetris baseline --provider mock --fake --steps 5   # fake run, no browser
 ```
 
 ### Live (browser + creds)
 
-Create a `.env` in the repo root (auto-loaded by the CLI — no sourcing needed):
+Create a `.env` in the repo root (auto-loaded by the CLI):
 
 ```bash
 INSFORGE_API_KEY=ik_...
 INSFORGE_BASE_URL=https://<id>.us-east.insforge.app
 INSFORGE_GATEWAY_URL=https://<id>.us-east.insforge.app/api/ai   # gateway base; chat = {this}/chat/completion
-INSFORGE_VISION_MODEL=openai/gpt-4o-mini                        # any vision-capable gateway model id
+INSFORGE_VISION_MODEL=google/gemini-2.5-flash                   # recommended; any vision-capable gateway model id
 INSFORGE_S3_BUCKET=<your-bucket>                                # created in the InsForge dashboard
 ANTHROPIC_API_KEY=sk-ant-...                                    # optional fallback provider
+
+# Distillation student (optional):
+NEBIUS_API_KEY=...
+NEBIUS_BASE_URL=https://api.studio.nebius.com/v1
+NEBIUS_MODEL=<fine-tuned-model-id>                              # from finetune_nebius.py output
+NEBIUS_MULTIMODAL=0                                             # set to 0 for the text-only LoRA student
 ```
 
 Then create the InsForge tables once, and run (from the activated `.venv`):
@@ -156,14 +219,31 @@ source .venv/bin/activate
 python scripts/insforge_setup.py                                  # creates ludus_episodes + ludus_steps
 python -m ludus.cli tetris baseline --provider gateway --steps 12
 python -m ludus.cli wolf3d memory  --provider gateway --steps 12
+python -m ludus.cli tetris baseline --provider nebius --steps 12  # student (after fine-tune)
 ```
 
-`--provider fallback` chains gateway → Anthropic → mock (warns loudly if it degrades to mock, so a misconfigured run is never silent). Live runs need GameWorld + its deps installed in the active env (see Setup); offline tests need none of that.
+`--provider fallback` chains gateway → Anthropic → mock (warns loudly if it degrades to mock, so a misconfigured run is never silent).
 
 ### Experiment (baseline vs memory, 2 games)
 
 ```bash
 source .venv/bin/activate && bash scripts/experiment.sh          # needs GameWorld + live creds
+```
+
+### Expert teacher (Tetris only)
+
+```bash
+# Watch the heuristic play live (calibrates + verifies rotation tables end-to-end):
+source .venv/bin/activate && python scripts/teacher_play.py
+
+# Collect a distillation dataset (~510 examples used for the LoRA fine-tune):
+python scripts/collect_dataset.py 500
+
+# Export to Nebius SFT format (text-only mode for Llama-3.2-3B-Instruct):
+python scripts/export_nebius.py --mode text
+
+# Launch a LoRA fine-tune on Nebius AI Studio:
+python scripts/finetune_nebius.py
 ```
 
 ### Dashboard
@@ -181,17 +261,25 @@ source .venv/bin/activate && bash scripts/experiment.sh          # needs GameWor
 configs/            per-game YAML (objective, legal_actions, control_map, metrics, timing)
 ludus/
   schemas.py        Pydantic contracts (Decision, PlannerContext, StepRecord, EpisodeResult)
-  loop.py           game-agnostic run_episode
-  providers/        ModelProvider protocol + Mock / InsForge / Anthropic / Fallback
+                    Decision.actions = ordered action macro; PlannerContext.state_text = board summary
+  loop.py           game-agnostic run_episode; pause/resume around inference + action sequence
+  providers/        ModelProvider protocol + Mock / InsForge / Anthropic / Fallback / Nebius
   adapters/         thin per-game GameAdapter impls (tetris, wolf3d, fireboy_watergirl)
   persistence/      LocalStore, InsForgeStore, DualWriteStore
   outcome.py        OutcomeDetector
   reflection.py     Reflector (metric-based)
   rulebook.py       Rulebook
+  teacher/
+    tetris_heuristic.py   Dellacherie-style placement heuristic (label source for distillation)
   cli.py            entrypoint: python -m ludus.cli <game> <mode> [options]
 server/app.py       minimal FastAPI dashboard (read-only from runs/)
 scripts/
-  experiment.sh     baseline vs memory loop across tetris + wolf3d
+  experiment.sh         baseline vs memory loop across tetris + wolf3d
+  teacher_play.py       drive the live teacher heuristic (calibration + demo)
+  collect_dataset.py    collect expert self-play examples → data/tetris/examples.jsonl
+  export_nebius.py      export examples to Nebius/OpenAI SFT format (vision or text mode)
+  finetune_nebius.py    launch LoRA fine-tune on Nebius AI Studio; poll to completion
+data/tetris/        distillation dataset (gitignored): images/ + examples.jsonl + nebius SFT files
 runs/               local persistence output (gitignored)
-tests/              43 offline unit tests
+tests/              92 offline unit tests
 ```

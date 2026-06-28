@@ -6,6 +6,30 @@ three methods: screenshot() -> bytes, metrics(keys) -> dict, apply(command) -> N
 """
 
 
+class GameWorldClient:
+    """Real GameWorld driving client. Methods to be filled from docs/DISCOVERY.md after Phase 0.
+    Same interface as FakeGameWorld: screenshot()->bytes, metrics(keys)->dict, apply(command)->None."""
+
+    def __init__(self, game_id: str, timing_ms: int, headless: bool = True) -> None:
+        self.game_id = game_id
+        self.timing_ms = timing_ms
+        self.headless = headless
+
+    def _not_ready(self):
+        raise NotImplementedError(
+            "GameWorldClient not yet implemented — fill from docs/DISCOVERY.md (Phase 0). Use --fake for now."
+        )
+
+    def screenshot(self) -> bytes:
+        self._not_ready()
+
+    def metrics(self, keys: list[str]) -> dict[str, float]:
+        self._not_ready()
+
+    def apply(self, command: dict) -> None:
+        self._not_ready()
+
+
 class FakeGameWorld:
     def __init__(self, metric_script: list[dict[str, float]]) -> None:
         self._metrics = metric_script

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+runs/
+gameworld/
+data/
+node_modules/
+.next/
+*.egg-info/

@@ -149,6 +149,7 @@ def collect(
     duration_ms: int,
     start_index: int,
     fout,
+    seed: int | None = None,
 ) -> tuple[int, list[int], list[int]]:
     """Collect up to target_n examples this game. Returns (count, scores, holes_list)."""
     written = 0
@@ -213,6 +214,8 @@ def collect(
             "target": target,
             "reward": {"score_after": score_after, "holes_after": holes_after},
         }
+        if seed is not None:
+            record["seed"] = seed
         fout.write(json.dumps(record) + "\n")
         fout.flush()
 
@@ -231,10 +234,31 @@ def collect(
     return written, scores, holes_list
 
 
+def _existing_count(path: Path) -> int:
+    """Number of non-blank example records already in `path` (0 if absent).
+
+    Used by --append to keep numbering monotonic across runs so new image files
+    never clobber earlier ones and the jsonl stays one-record-per-line.
+    """
+    if not path.exists():
+        return 0
+    n = 0
+    with path.open() as f:
+        for line in f:
+            if line.strip():
+                n += 1
+    return n
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("n", nargs="?", type=int, default=150, help="number of examples to collect")
-    ap.add_argument("--seed", type=int, default=None, help="(reserved) RNG seed marker for the run")
+    ap.add_argument("--seed", type=int, default=None, help="RNG seed marker for the run (recorded per example)")
+    ap.add_argument(
+        "--append",
+        action="store_true",
+        help="append to (rather than overwrite) examples.jsonl, continuing the image numbering",
+    )
     ap.add_argument("--headed", action="store_true", help="show the browser window")
     ap.add_argument("--config", type=Path, default=REPO_ROOT / "configs" / "tetris.yaml")
     args = ap.parse_args()
@@ -246,10 +270,17 @@ def main() -> None:
 
     IMAGES_DIR.mkdir(parents=True, exist_ok=True)
 
+    # In --append mode, continue numbering after the records already on disk so we
+    # never overwrite earlier image files; otherwise start fresh (truncate).
+    already = _existing_count(EXAMPLES_PATH) if args.append else 0
+    open_mode = "a" if args.append else "w"
+
     print(
         f"Collecting {args.n} teacher examples from {GAME_ID} "
-        f"(headless={not args.headed}) -> {EXAMPLES_PATH}"
+        f"(headless={not args.headed}, append={args.append}, seed={args.seed}) -> {EXAMPLES_PATH}"
     )
+    if args.append:
+        print(f"[append] {already} examples already on disk; new ones start at index {already + 1}")
 
     total = 0
     all_scores: list[int] = []
@@ -257,7 +288,7 @@ def main() -> None:
     games = 0
     # The teacher rarely tops out, so one game usually yields many examples; loop
     # across fresh games until we hit the target (each game is a new browser/seed).
-    with EXAMPLES_PATH.open("w") as fout:
+    with EXAMPLES_PATH.open(open_mode) as fout:
         while total < args.n and games < 12:
             games += 1
             remaining = args.n - total
@@ -268,7 +299,7 @@ def main() -> None:
             try:
                 n, scores, holes = collect(
                     client, remaining, objective, legal_actions, duration_ms,
-                    start_index=total + 1, fout=fout,
+                    start_index=already + total + 1, fout=fout, seed=args.seed,
                 )
             finally:
                 client.close()

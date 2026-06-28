@@ -141,11 +141,16 @@ class GameWorldClient:
         # Gate on real readiness (status in {ready, playing}) before any input.
         await self._mgr.wait_until_actionable(stage="boot")
 
-        # Partner-action recorder (no-op until a human drives the page; real impl later).
+        # Partner-action recorder: capture ONLY the human partner's (Fireboy's) keys
+        # — the arrow keys. Watergirl's keys (a/d/w), which the agent injects via
+        # Playwright, are deliberately excluded so read_partner_actions() reflects the
+        # human partner's actions, not the agent's own.
         await self._mgr.page.evaluate(
             "() => { if (!window.__humanKeys) { window.__humanKeys = [];"
+            " var FIREBOY_KEYS = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];"
             " window.addEventListener('keydown',"
-            " e => window.__humanKeys.push(e.key), true); } }"
+            " e => { if (FIREBOY_KEYS.includes(e.key)) window.__humanKeys.push(e.key); },"
+            " true); } }"
         )
         self._started = True
 

@@ -112,7 +112,7 @@ class GameWorldClient:
 
     async def _connect(self) -> None:
         from catalog.games import resolve_game_id, load_game
-        from env.game_launcher import GameLauncher
+        from env.game_launcher import GameLauncher, append_url_suffix
         from env.browser_manager import BrowserConfig, BrowserGameManager
 
         gid = resolve_game_id(self.game_id)
@@ -121,6 +121,12 @@ class GameWorldClient:
 
         self._launcher = GameLauncher(game_name=game.game_name, port=port)
         game_url = self._launcher.start()
+        # Fireboy & Watergirl boots to a splash/level-menu that never reaches the
+        # actionable "playing" state on its own; its game_api exposes a direct-start
+        # path gated on ?autostart=1 (game_api.js isDirectStartEnabled). Append it so
+        # the co-op level loads automatically. Other games are unaffected.
+        if "fireboy" in game.game_name.lower():
+            game_url = append_url_suffix(game_url, "?autostart=1")
 
         self._mgr = BrowserGameManager(
             BrowserConfig(
@@ -197,8 +203,17 @@ class GameWorldClient:
         await asyncio.sleep(0.1)
 
     def read_partner_actions(self) -> list[str]:
-        # Real impl is a later phase; return [] for now per the contract.
-        return []
+        self._ensure_started()
+        return self._submit(self._read_partner_actions())
+
+    async def _read_partner_actions(self) -> list[str]:
+        # Drain the human-keypress buffer installed in _connect(): read it, then
+        # clear it so each step sees only keys pressed since the last read. The
+        # recorder pushes raw KeyboardEvent.key names (e.g. "ArrowRight", "w").
+        keys = await self._mgr.page.evaluate(
+            "() => { const k = window.__humanKeys || []; window.__humanKeys = []; return k; }"
+        )
+        return [str(k) for k in (keys or [])]
 
     def __enter__(self) -> "GameWorldClient":
         return self
@@ -248,3 +263,6 @@ class FakeGameWorld:
     def apply(self, command: dict) -> None:
         self.applied.append(command)
         self._i = min(self._i + 1, len(self._metrics) - 1)
+
+    def read_partner_actions(self) -> list[str]:
+        return []  # FakeGameWorld: no human partner.

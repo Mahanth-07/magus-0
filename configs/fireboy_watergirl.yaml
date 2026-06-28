@@ -1,0 +1,22 @@
+# Reconciled to the REAL 12_fireboy-and-watergirl co-op game
+# (gameworld/games/benchmark/12_fireboy-and-watergirl + catalog/games/12_fireboy-and-watergirl.yaml).
+#
+# This is a 2-ROLE cooperative game. The AGENT controls WATERGIRL (the blue girl),
+# whose keys are w (jump) / a (left) / d (right) per the catalog's `watergirl`
+# semantic_controls + computer_use_controls (allowed_keys: ["w","a","d"]).
+# FIREBOY (arrow keys: ArrowUp/ArrowLeft/ArrowRight) is the HUMAN partner's role and
+# is deliberately ABSENT from control_map — Fireboy keys come from the human, captured
+# into PlannerContext.partner_recent_actions via GameWorldClient.read_partner_actions().
+#
+# Metrics verified against window.gameAPI.getState() (game_api.js):
+#   game_state.score == sum of fireboy+watergirl diamonds collected (totals.collected) ->
+#     the shared co-op goal (DISCOVERY.md §4: aggregate_score_fields, target 2).
+#   game_state.completion_progress, metrics.coins, metrics.coins_total also present.
+name: fireboy_watergirl
+objective: human Fireboy + agent Watergirl pass the first coordinated obstacle; collect diamonds and reach the exits
+legal_actions: [move_left, move_right, jump, wait_for_partner]
+primary_metric: score
+higher_is_better: true
+timing_ms: 250
+control_map: {move_left: a, move_right: d, jump: w}
+relevant_metrics: [score, completion_progress, coins, coins_total]

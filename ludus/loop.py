@@ -27,6 +27,8 @@ def run_episode(
             recent_outcomes=recent_outcomes[-5:],
             learned_rules=rulebook.render() if use_memory else "",
             screenshot_png=png,
+            partner_recent_actions=(gameworld.read_partner_actions()
+                                    if hasattr(gameworld, "read_partner_actions") else []),
         )
         decision = provider.decide(ctx)
 

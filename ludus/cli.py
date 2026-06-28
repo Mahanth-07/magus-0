@@ -3,6 +3,7 @@ from pathlib import Path
 from ludus.config import load_game_config
 from ludus.adapters.tetris import TetrisAdapter
 from ludus.adapters.wolf3d import Wolf3DAdapter
+from ludus.adapters.fireboy_watergirl import FireboyWatergirlAdapter
 from ludus.providers import build_provider
 from ludus.persistence.local import LocalStore
 from ludus.persistence.dual import DualWriteStore
@@ -11,10 +12,12 @@ from ludus.rulebook import Rulebook
 from ludus.gameworld_client import GameWorldClient, FakeGameWorld
 from ludus.loop import run_episode
 
-ADAPTERS = {"tetris": TetrisAdapter, "wolf3d": Wolf3DAdapter}
+ADAPTERS = {"tetris": TetrisAdapter, "wolf3d": Wolf3DAdapter,
+            "fireboy_watergirl": FireboyWatergirlAdapter}
 # Map the logical adapter name (config `name`) to the GameWorld catalog game_id
 # (catalog YAML stem). resolve_game_id() requires an exact stem match.
-GAMEWORLD_IDS = {"tetris": "29_tetris", "wolf3d": "31_wolf3d"}
+GAMEWORLD_IDS = {"tetris": "29_tetris", "wolf3d": "31_wolf3d",
+                 "fireboy_watergirl": "12_fireboy-and-watergirl"}
 
 
 def main() -> None:

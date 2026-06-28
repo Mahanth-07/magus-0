@@ -19,6 +19,7 @@ def build_prompt(ctx: PlannerContext) -> str:
         f"{_SYSTEM}\n\nObjective: {ctx.objective}\n"
         f"Legal actions: {', '.join(ctx.legal_actions)}\n"
         f"Recent outcomes:\n" + ("\n".join(ctx.recent_outcomes) or "(none)") + "\n"
+        f"Partner recent actions:\n" + ("\n".join(ctx.partner_recent_actions) or "(none)") + "\n"
         f"Learned rules:\n{ctx.learned_rules or '(none)'}\n"
     )
 

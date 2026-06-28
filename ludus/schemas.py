@@ -25,6 +25,7 @@ class PlannerContext(BaseModel):
     recent_outcomes: list[str] = Field(default_factory=list)
     learned_rules: str = ""
     screenshot_png: bytes = b""
+    partner_recent_actions: list[str] = Field(default_factory=list)
 
 
 class StepRecord(BaseModel):

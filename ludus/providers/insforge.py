@@ -21,15 +21,42 @@ _SYSTEM = (
 )
 
 
-def build_prompt(ctx: PlannerContext) -> str:
-    state_section = f"Game state:\n{ctx.state_text}\n" if ctx.state_text else ""
+def build_user_text(
+    objective: str,
+    legal_actions: list[str],
+    state_text: str = "",
+    recent_outcomes: list[str] | None = None,
+    partner_recent_actions: list[str] | None = None,
+    learned_rules: str = "",
+) -> str:
+    """The user-turn text (everything except the _SYSTEM preamble and the image).
+
+    Factored out so the offline SFT export (scripts/export_nebius.py) can build the
+    EXACT same user text the runtime sends to the model — the student must train on
+    the same prompt it will see at inference, minus the live screenshot (which the
+    export embeds as a data URI instead).
+    """
+    recent_outcomes = recent_outcomes or []
+    partner_recent_actions = partner_recent_actions or []
+    state_section = f"Game state:\n{state_text}\n" if state_text else ""
     return (
-        f"{_SYSTEM}\n\nObjective: {ctx.objective}\n"
-        f"Legal actions: {', '.join(ctx.legal_actions)}\n"
+        f"Objective: {objective}\n"
+        f"Legal actions: {', '.join(legal_actions)}\n"
         + state_section
-        + f"Recent outcomes:\n" + ("\n".join(ctx.recent_outcomes) or "(none)") + "\n"
-        f"Partner recent actions:\n" + ("\n".join(ctx.partner_recent_actions) or "(none)") + "\n"
-        f"Learned rules:\n{ctx.learned_rules or '(none)'}\n"
+        + f"Recent outcomes:\n" + ("\n".join(recent_outcomes) or "(none)") + "\n"
+        f"Partner recent actions:\n" + ("\n".join(partner_recent_actions) or "(none)") + "\n"
+        f"Learned rules:\n{learned_rules or '(none)'}\n"
+    )
+
+
+def build_prompt(ctx: PlannerContext) -> str:
+    return f"{_SYSTEM}\n\n" + build_user_text(
+        objective=ctx.objective,
+        legal_actions=ctx.legal_actions,
+        state_text=ctx.state_text,
+        recent_outcomes=ctx.recent_outcomes,
+        partner_recent_actions=ctx.partner_recent_actions,
+        learned_rules=ctx.learned_rules,
     )
 
 

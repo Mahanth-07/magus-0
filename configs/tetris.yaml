@@ -1,0 +1,9 @@
+# VALUES TO VERIFY against docs/DISCOVERY.md after Phase 0 (legal_actions, metric names, control keys, timing).
+name: tetris
+objective: place pieces, minimize holes; clear a line when possible
+legal_actions: [left, right, rotate, drop]
+primary_metric: holes
+higher_is_better: false
+timing_ms: 250
+control_map: {left: ArrowLeft, right: ArrowRight, rotate: ArrowUp, drop: Space}
+relevant_metrics: [holes, lines, height]

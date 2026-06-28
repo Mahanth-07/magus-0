@@ -6,7 +6,9 @@
 
 ## Thesis
 
-One shared brain — one planner, one rulebook — beats the no-rules baseline across multiple games. The agent learns compact rules by reflecting on prediction error and reuses them in subsequent steps. The memory advantage is measurable on state-verifiable game metrics (score, kills, diamonds collected).
+One shared brain — one planner, one rulebook — plays multiple games from screenshots alone. The agent emits semantic actions, predicts each outcome, reflects on prediction error to learn compact rules, and reuses them in later steps. Every decision, prediction, outcome, and screenshot is persisted to InsForge.
+
+Whether learned memory *beats* the no-rules baseline is measured directly on state-verifiable metrics (score, kills, health, diamonds) rather than asserted — see **Results** below for the honest, mixed findings and what they reveal about the reflection design.
 
 ---
 
@@ -79,7 +81,28 @@ Agent controls Watergirl (a/d/w keys); Fireboy arrows captured by a partner-key 
 
 ## Results: baseline vs memory
 
-> ⏳ Filled after the live experiment run (`scripts/experiment.sh` with vision creds).
+Real run, `scripts/experiment.sh`, 12 steps each, **gpt-4o-mini vision via the InsForge gateway**. All decisions/outcomes/screenshots were persisted to InsForge during these runs.
+
+| Game | Mode | Primary metric | Secondary | Legal-action rate | Rules learned |
+|---|---|---|---|---|---|
+| Tetris | baseline | **score 66** | 14 cells | 100% | 0 |
+| Tetris | memory | score 44 | 10 cells | 100% | 3 |
+| Wolf3D | baseline | kills 0 | **health 0 (died)** | 100% | 0 |
+| Wolf3D | memory | kills 0 | **health 100 (preserved)** | 100% | 5 |
+
+**Honest read.** The results are mixed, not a clean memory win:
+
+- **Wolf3D — memory helped.** The baseline agent's health dropped to 0 (it took fire); the memory agent finished with full health (100), directly matching the "preserve health" objective. Neither scored a kill at this step budget.
+- **Tetris — memory hurt** (44 < 66). Memory learned 3 rules but scored lower.
+- **Structured output never failed** — 100% legal-action rate in every run; the planner always returned a parseable `Decision`.
+
+**Why "memory beats baseline" is not cleanly shown here — three real confounds:**
+
+1. **Within-episode only.** Each run starts with a *fresh* rulebook; rules learned in early steps only help later steps of the *same* 12-step run. There is no cross-episode accumulation yet.
+2. **Tiny sample.** One 12-step trial per cell, with a non-deterministic vision model. No averaging over seeds/trials.
+3. **Blunt reflection.** This build uses the spec's cut-down **metric-based** `Reflector`, which emits generic "action X did not improve <metric>; try an alternative" rules. In Tetris — where most non-drop moves never change `score` — that floods the rulebook with discouraging rules that can suppress useful actions. The spec's **model-based** reflection (deferred) would phrase sharper, situational rules.
+
+**What the experiment *does* prove:** the full learn-and-reuse loop runs end-to-end on real games via real vision, the rulebook genuinely accumulates and feeds back, structured outputs are robust, and every step is persisted to InsForge. The harness can now answer "does memory help?" empirically — the next step to make it a clean win is cross-episode rule persistence + model-based reflection + multi-trial averaging.
 
 ---
 
@@ -97,11 +120,26 @@ Agent controls Watergirl (a/d/w keys); Fireboy arrows captured by a partner-key 
 
 ### Live (browser + creds)
 
+Create `~/ludus/.env` (auto-loaded by the CLI — no sourcing needed):
+
 ```bash
-# Set env: INSFORGE_API_KEY, INSFORGE_DB_URL, AWS_* for S3
-/opt/anaconda3/bin/python -m ludus.cli tetris baseline --provider fallback --steps 12
-/opt/anaconda3/bin/python -m ludus.cli wolf3d memory --provider fallback --steps 12
+INSFORGE_API_KEY=ik_...
+INSFORGE_BASE_URL=https://<id>.us-east.insforge.app
+INSFORGE_GATEWAY_URL=https://<id>.us-east.insforge.app/api/ai   # gateway base; chat = {this}/chat/completion
+INSFORGE_VISION_MODEL=openai/gpt-4o-mini                        # any vision-capable gateway model id
+INSFORGE_S3_BUCKET=<your-bucket>                                # created in the InsForge dashboard
+ANTHROPIC_API_KEY=sk-ant-...                                    # optional fallback provider
 ```
+
+Then create the InsForge tables once, and run:
+
+```bash
+/opt/anaconda3/bin/python scripts/insforge_setup.py            # creates ludus_episodes + ludus_steps
+/opt/anaconda3/bin/python -m ludus.cli tetris baseline --provider gateway --steps 12
+/opt/anaconda3/bin/python -m ludus.cli wolf3d memory  --provider gateway --steps 12
+```
+
+`--provider fallback` chains gateway → Anthropic → mock (warns loudly if it degrades to mock, so a misconfigured run is never silent). Live runs need the **base anaconda** python (it has Playwright + GameWorld's deps); the offline tests run in `.venv`.
 
 ### Experiment (baseline vs memory, 2 games)
 

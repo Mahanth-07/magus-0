@@ -7,10 +7,17 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from ludus.schemas import Decision, PlannerContext
 
 _SYSTEM = (
-    "You control a game via SEMANTIC actions. Look at the screenshot and return ONE action. "
-    "You MUST choose action from the legal list. Predict the result before acting. "
+    "You control a game via SEMANTIC actions. Look at the screenshot and decide what to do. "
+    "Every action you use MUST come from the legal list. Predict the result before acting.\n"
+    "You may return an ordered \"actions\" array of 1-5 moves that are applied in sequence in "
+    "one turn. Use it to POSITION the controlled entity (e.g. move/rotate it into place) BEFORE "
+    "committing with a terminal/irreversible move. Prefer positioning over an immediate terminal "
+    "action: do not commit until the entity is where you want it. Put any terminal move LAST. "
+    "Set \"action\" to the single most important move of the turn (the primary move).\n"
     "Respond with ONLY a JSON object with keys: scene_summary, controlled_entity, "
-    "current_subgoal, action, action_args, expected_result, reason, confidence."
+    "current_subgoal, action, actions, action_args, expected_result, reason, confidence. "
+    "\"action\" is a single legal action string; \"actions\" is an ordered list of legal action "
+    "strings (may be empty if a single action suffices)."
 )
 
 

@@ -2,7 +2,16 @@
 # by observing the active piece move (ArrowLeft/Right shift x; x rotates; Space hard-drops and
 # scores), and metric keys verified against window.gameAPI.getState() (game_state.score etc).
 name: tetris
-objective: place pieces, clear lines, maximize score; keep the board playable
+objective: >-
+  Tetris. The active piece spawns at the TOP-CENTER column. Each turn, return an "actions"
+  sequence that FIRST moves the piece with several LEFT or RIGHT moves toward the lowest /
+  flattest part of the board, ROTATE as needed so it fits the gap, and ONLY THEN end with
+  "drop". Look at the current stack: aim for the column that is currently the LOWEST / has the
+  most empty space, and alternate sides so you fill the board evenly LEFT-to-RIGHT — if the
+  left side is already taller, move RIGHT this turn, and vice versa. Keep the surface flat.
+  Do NOT keep dropping in the same place, do NOT pile everything on one side, and avoid
+  creating holes (covered empty cells). Clear full rows when you can. A good turn looks like
+  ["left","left","drop"] or ["right","right","rotate","drop"], not just ["drop"].
 legal_actions: [left, right, rotate, drop]
 primary_metric: score
 higher_is_better: true

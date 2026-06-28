@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 runs/
 gameworld/
+data/
 node_modules/
 .next/
 *.egg-info/

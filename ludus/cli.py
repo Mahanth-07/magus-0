@@ -43,13 +43,15 @@ def main() -> None:
     ap.add_argument("--steps", type=int, default=8)
     ap.add_argument("--provider", default="mock", choices=["mock", "gateway", "anthropic", "fallback"])
     ap.add_argument("--fake", action="store_true", help="use FakeGameWorld (no browser)")
+    ap.add_argument("--headed", action="store_true", help="show the browser window (great for demos)")
     args = ap.parse_args()
 
     cfg = load_game_config(Path("configs") / f"{args.game}.yaml")
     adapter = ADAPTERS[args.game](cfg)
     provider = build_provider(args.provider)
     gw = FakeGameWorld([{cfg.primary_metric: 0.0}]) if args.fake else GameWorldClient(
-        game_id=GAMEWORLD_IDS.get(cfg.name, cfg.name), timing_ms=cfg.timing_ms)
+        game_id=GAMEWORLD_IDS.get(cfg.name, cfg.name), timing_ms=cfg.timing_ms,
+        headless=not args.headed)
     store = DualWriteStore(primary=LocalStore(), secondary=InsForgeStore())
     try:
         result = run_episode(adapter=adapter, provider=provider, gameworld=gw,

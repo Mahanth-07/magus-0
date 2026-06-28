@@ -19,14 +19,20 @@ are bound to the loop that created them, so the browser must live for the loop's
 
 import asyncio
 import logging
+import os
 import sys
 import threading
+from pathlib import Path
 
 log = logging.getLogger("ludus.gameworld")
 
 # GameWorld is run-as-scripts-from-repo-root (no pip package); put its root on sys.path
 # so `from env... import ...` / `from catalog... import ...` resolve. See DISCOVERY.md §0.
-_GAMEWORLD_ROOT = "/Users/mahanth/ludus/gameworld"
+# Resolution order: $GAMEWORLD_ROOT, else `<repo-root>/gameworld` (repo root = parent of
+# the `ludus` package dir). Override the env var if you clone GameWorld elsewhere.
+_GAMEWORLD_ROOT = os.environ.get("GAMEWORLD_ROOT") or str(
+    Path(__file__).resolve().parent.parent / "gameworld"
+)
 if _GAMEWORLD_ROOT not in sys.path:
     sys.path.insert(0, _GAMEWORLD_ROOT)
 

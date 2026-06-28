@@ -18,8 +18,11 @@ are bound to the loop that created them, so the browser must live for the loop's
 """
 
 import asyncio
+import logging
 import sys
 import threading
+
+log = logging.getLogger("ludus.gameworld")
 
 # GameWorld is run-as-scripts-from-repo-root (no pip package); put its root on sys.path
 # so `from env... import ...` / `from catalog... import ...` resolve. See DISCOVERY.md §0.
@@ -72,11 +75,13 @@ class GameWorldClient:
         timing_ms: int,
         headless: bool = True,
         port: int | None = None,
+        call_timeout: float = 60.0,
     ) -> None:
         self.game_id = game_id
         self.timing_ms = timing_ms
         self.headless = headless
         self._port = port
+        self._call_timeout = call_timeout
 
         self._launcher = None
         self._mgr = None
@@ -94,8 +99,14 @@ class GameWorldClient:
         self._loop.run_forever()
 
     def _submit(self, coro):
-        """Run a coroutine on the private loop from the (sync) caller thread."""
-        return asyncio.run_coroutine_threadsafe(coro, self._loop).result()
+        """Run a coroutine on the private loop from the (sync) caller thread.
+
+        Bounded by self._call_timeout so a stalled GameWorld surfaces a TimeoutError
+        instead of hanging the episode forever; the TimeoutError is allowed to propagate.
+        """
+        return asyncio.run_coroutine_threadsafe(coro, self._loop).result(
+            timeout=self._call_timeout
+        )
 
     # --- lifecycle ------------------------------------------------------------
 
@@ -159,7 +170,11 @@ class GameWorldClient:
                 value = _get_nested(state, path)
                 if isinstance(value, (int, float)):
                     break
-            out[key] = float(value) if isinstance(value, (int, float)) else 0.0
+            if isinstance(value, (int, float)):
+                out[key] = float(value)
+            else:
+                log.warning("metric %r not found in game state; defaulting 0.0", key)
+                out[key] = 0.0
         return out
 
     def apply(self, command: dict) -> None:
@@ -167,8 +182,11 @@ class GameWorldClient:
         self._submit(self._apply(command))
 
     async def _apply(self, command: dict) -> None:
-        key = command["key"]
-        duration_ms = command.get("duration_ms") or self.timing_ms
+        key = command.get("key")
+        if not key:
+            log.warning("apply() got command with no 'key': %r", command)
+            return
+        duration_ms = command.get("duration_ms", self.timing_ms)
         kb = self._mgr.page.keyboard
         # Press the key held for duration_ms (down -> wait -> up), as the real game's
         # jaws.js input loop polls held keys; then let the game tick a moment so the
@@ -181,6 +199,12 @@ class GameWorldClient:
     def read_partner_actions(self) -> list[str]:
         # Real impl is a later phase; return [] for now per the contract.
         return []
+
+    def __enter__(self) -> "GameWorldClient":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.close()
 
     def close(self) -> None:
         if self._started and self._mgr is not None:

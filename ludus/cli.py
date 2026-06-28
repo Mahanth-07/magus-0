@@ -11,6 +11,9 @@ from ludus.gameworld_client import GameWorldClient, FakeGameWorld
 from ludus.loop import run_episode
 
 ADAPTERS = {"tetris": TetrisAdapter}
+# Map the logical adapter name (config `name`) to the GameWorld catalog game_id
+# (catalog YAML stem). resolve_game_id() requires an exact stem match.
+GAMEWORLD_IDS = {"tetris": "29_tetris"}
 
 
 def main() -> None:
@@ -25,11 +28,16 @@ def main() -> None:
     cfg = load_game_config(Path("configs") / f"{args.game}.yaml")
     adapter = ADAPTERS[args.game](cfg)
     provider = build_provider(args.provider)
-    gw = FakeGameWorld([{cfg.primary_metric: 0.0}]) if args.fake else GameWorldClient(game_id=cfg.name, timing_ms=cfg.timing_ms)
+    gw = FakeGameWorld([{cfg.primary_metric: 0.0}]) if args.fake else GameWorldClient(
+        game_id=GAMEWORLD_IDS.get(cfg.name, cfg.name), timing_ms=cfg.timing_ms)
     store = DualWriteStore(primary=LocalStore(), secondary=InsForgeStore())
-    result = run_episode(adapter=adapter, provider=provider, gameworld=gw,
-        store=store, rulebook=Rulebook(), mode=args.mode,
-        max_steps=args.steps, episode_id=f"{args.game}-{args.mode}")
+    try:
+        result = run_episode(adapter=adapter, provider=provider, gameworld=gw,
+            store=store, rulebook=Rulebook(), mode=args.mode,
+            max_steps=args.steps, episode_id=f"{args.game}-{args.mode}")
+    finally:
+        if hasattr(gw, "close"):
+            gw.close()
     print(result.model_dump_json(indent=2))
 
 

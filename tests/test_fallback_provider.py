@@ -34,3 +34,11 @@ def test_raises_when_all_fail():
     p = FallbackProvider([_Unavailable(), _Raises()])
     with pytest.raises(RuntimeError):
         p.decide(_ctx())
+
+
+def test_warns_when_falling_back_to_mock(caplog):
+    import logging
+    p = FallbackProvider([_Unavailable(), MockProvider()])
+    with caplog.at_level(logging.WARNING, logger="ludus.providers"):
+        p.decide(_ctx())
+    assert any("degraded to MockProvider" in r.message for r in caplog.records)

@@ -22,7 +22,13 @@ class FallbackProvider:
             if not p.available():
                 continue
             try:
-                return p.decide(context)
+                decision = p.decide(context)
+                if p.name == "mock":
+                    log.warning(
+                        "FallbackProvider degraded to MockProvider — NO real vision/decisions. "
+                        "Check provider credentials (gateway/anthropic env vars)."
+                    )
+                return decision
             except Exception as exc:  # provider-level failure → try next
                 log.warning("provider %s failed: %s", p.name, exc)
                 last_exc = exc

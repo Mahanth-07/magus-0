@@ -1,4 +1,5 @@
 import argparse
+import os
 from pathlib import Path
 from ludus.config import load_game_config
 from ludus.adapters.tetris import TetrisAdapter
@@ -20,7 +21,22 @@ GAMEWORLD_IDS = {"tetris": "29_tetris", "wolf3d": "31_wolf3d",
                  "fireboy_watergirl": "12_fireboy-and-watergirl"}
 
 
+def _load_dotenv(path: str = ".env") -> None:
+    """Load KEY=VALUE lines from a local .env into os.environ (without overriding
+    already-set vars). No external dependency."""
+    p = Path(path)
+    if not p.exists():
+        return
+    for line in p.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, val = line.split("=", 1)
+        os.environ.setdefault(key.strip(), val.strip())
+
+
 def main() -> None:
+    _load_dotenv()
     ap = argparse.ArgumentParser()
     ap.add_argument("game")
     ap.add_argument("mode", choices=["baseline", "memory"])

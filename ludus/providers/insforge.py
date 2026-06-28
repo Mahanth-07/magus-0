@@ -47,7 +47,8 @@ class InsForgeGatewayProvider:
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.5, max=4))
     def decide(self, ctx: PlannerContext) -> Decision:
         b64 = base64.b64encode(ctx.screenshot_png).decode()
-        # NOTE: confirm exact path + payload shape against docs/DISCOVERY.md.
+        # InsForge model gateway: POST {INSFORGE_GATEWAY_URL}/chat/completion (singular).
+        # Vision via OpenAI-style content array (text + image_url data URI).
         payload = {
             "model": self._model,
             "messages": [{
@@ -60,9 +61,14 @@ class InsForgeGatewayProvider:
             "temperature": 0,
         }
         r = httpx.post(
-            f"{self._base}/chat/completions",
+            f"{self._base}/chat/completion",
             headers={"Authorization": f"Bearer {self._key}"},
-            json=payload, timeout=60,
+            json=payload, timeout=90,
         )
         r.raise_for_status()
-        return parse_decision(r.json()["choices"][0]["message"]["content"])
+        body = r.json()
+        # InsForge gateway returns {"text": ...}; fall back to OpenAI {"choices":[...]} shape.
+        content = body.get("text")
+        if content is None:
+            content = body["choices"][0]["message"]["content"]
+        return parse_decision(content)

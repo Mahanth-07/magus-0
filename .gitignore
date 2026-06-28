@@ -8,3 +8,6 @@ data/
 node_modules/
 .next/
 *.egg-info/
+
+# firectl binary (local install)
+.local/

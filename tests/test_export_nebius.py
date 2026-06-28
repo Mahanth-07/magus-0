@@ -1,7 +1,7 @@
 import base64
 import json
 
-from scripts.export_nebius import example_to_sft
+from scripts.export_nebius import example_to_sft, example_to_text_sft
 from ludus.providers.insforge import _SYSTEM, build_user_text, parse_decision
 
 
@@ -84,3 +84,49 @@ def test_assistant_content_parses_back_into_a_decision_with_matching_actions():
     assert decision.confidence == 1.0
     # round-trips as valid JSON
     assert json.loads(assistant["content"])["controlled_entity"] == "the active tetromino"
+
+
+# --- TEXT-only SFT (for a non-multimodal student fine-tune) ---
+
+
+def test_text_sft_has_three_string_messages_in_role_order():
+    sft = example_to_text_sft(_example())
+    msgs = sft["messages"]
+    assert [m["role"] for m in msgs] == ["system", "user", "assistant"]
+    # ALL content fields are plain STRINGS (no image_url content arrays).
+    for m in msgs:
+        assert isinstance(m["content"], str)
+
+
+def test_text_sft_system_is_runtime_system_string():
+    sft = example_to_text_sft(_example())
+    assert sft["messages"][0]["content"] == _SYSTEM
+
+
+def test_text_sft_user_is_the_shared_user_text_helper_and_has_no_image():
+    ex = _example()
+    sft = example_to_text_sft(ex)
+    user = sft["messages"][1]["content"]
+    assert user == build_user_text(
+        objective=ex["objective"],
+        legal_actions=ex["legal_actions"],
+        state_text=ex["state_text"],
+    )
+    assert ex["objective"] in user
+    assert "left, right, rotate, drop" in user
+    assert "Board 10x20" in user
+    # No image / no system preamble smuggled into the user turn.
+    assert "base64" not in user
+    assert "image_url" not in user
+    assert _SYSTEM not in user
+
+
+def test_text_sft_assistant_parses_into_a_decision_with_matching_actions():
+    ex = _example()
+    sft = example_to_text_sft(ex)
+    assistant = sft["messages"][2]["content"]
+    assert isinstance(assistant, str)
+    decision = parse_decision(assistant)
+    assert decision.actions == ex["target"]["actions"]
+    assert decision.action == ex["target"]["action"]
+    assert decision.confidence == 1.0

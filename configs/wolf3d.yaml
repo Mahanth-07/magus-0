@@ -1,0 +1,17 @@
+# Reconciled to the REAL 31_wolf3d game (games/benchmark/31_wolf3d). Controls verified
+# from js/game.js controls{} + js/input.js Wolf.Keys{} (keyCode-based input loop):
+#   up/down/left/right=ArrowUp/Down/Left/Right (keyCodes 38/40/37/39), attack=X (88),
+#   use/open-door=SPACE (32). The catalog YAML (catalog/games/31_wolf3d.yaml
+#   semantic_controls) agrees: ArrowUp/Down/Left/Right, x=shoot, Space=open_door.
+# Metric keys 'kills'/'health' resolve through GameWorldClient's metrics() fallback
+# (key -> metrics.<key>) to window.gameAPI.getState().metrics.{kills,health} — the
+# real serialized state shape (game_api.js getState(): metrics.kills/health/ammo/
+# lives/max_kills). Primary = kills (DISCOVERY.md §4; task 31_01 target 2).
+name: wolf3d
+objective: kill one enemy while preserving health
+legal_actions: [move_forward, move_backward, turn_left, turn_right, attack, wait]
+primary_metric: kills
+higher_is_better: true
+timing_ms: 300
+control_map: {move_forward: ArrowUp, move_backward: ArrowDown, turn_left: ArrowLeft, turn_right: ArrowRight, attack: x, wait: ""}
+relevant_metrics: [kills, health, ammo, lives, max_kills]

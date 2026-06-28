@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PYTHON=/opt/anaconda3/bin/python
-STEPS=12
+# Use $LUDUS_PYTHON if set, else whatever `python` is active (e.g. the .venv).
+PYTHON="${LUDUS_PYTHON:-python}"
+STEPS="${STEPS:-12}"
 
 for game in tetris wolf3d; do
   for mode in baseline memory; do

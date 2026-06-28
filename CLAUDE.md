@@ -6,14 +6,22 @@ Ludus is a game-agnostic AI agent that plays GameWorld browser games via **seman
 
 ---
 
-## Environment split — critical
+## Environment
 
-| Purpose | Python | Notes |
-|---|---|---|
-| Unit tests (offline) | `/Users/mahanth/ludus/.venv/bin/python` | Has pydantic, fastapi, uvicorn, pytest — no playwright |
-| Live browser runs | `/opt/anaconda3/bin/python` | Has playwright + GameWorld deps; adds the GameWorld repo root to sys.path |
+The recommended setup is **one env** (a `.venv`) holding both the offline core and GameWorld's deps:
 
-**Never** mix them. Tests pass with the venv; live runs need anaconda.
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt && pip install -e .
+# live runs only: install GameWorld deps into the SAME env
+pip install -r gameworld/requirements.txt && playwright install chromium
+```
+
+- **Offline** (unit tests, `--fake` runs) needs only `requirements.txt` + the `ludus` package — no playwright.
+- **Live** (real browser games) additionally needs GameWorld + playwright in the active env.
+- GameWorld is located at `./gameworld` (repo-relative) by default; override with `GAMEWORLD_ROOT=/path/to/gameworld`. `gameworld_client.py` adds it to `sys.path`.
+
+(Historically this machine used a separate base-anaconda env for live runs; the single-`.venv` setup above is the portable default.)
 
 ---
 
@@ -49,7 +57,7 @@ PlannerContext ──► ModelProvider.decide() ──► Decision
 ## CLI
 
 ```bash
-/opt/anaconda3/bin/python -m ludus.cli <game> <mode> [--steps N] [--provider mock|gateway|anthropic|fallback] [--fake]
+python -m ludus.cli <game> <mode> [--steps N] [--provider mock|gateway|anthropic|fallback] [--fake]   # from the active .venv
 ```
 
 - `game`: `tetris`, `wolf3d`, `fireboy_watergirl` (mapped to GameWorld IDs internally via `GAMEWORLD_IDS`).
@@ -62,7 +70,7 @@ PlannerContext ──► ModelProvider.decide() ──► Decision
 ## Running tests
 
 ```bash
-/Users/mahanth/ludus/.venv/bin/pytest -v
+.venv/bin/pytest -v          # or: source .venv/bin/activate && pytest -v
 ```
 
 43 tests, all offline. Tests cover schemas, mock provider, fallback provider, outcome detection, reflection, rulebook, local store, dual store, loop, config loader, and the tetris adapter.
@@ -120,7 +128,7 @@ runs/<episode_id>/
 bash scripts/experiment.sh
 ```
 
-Loops tetris + wolf3d × baseline + memory, 12 steps each, with `--provider fallback`. Requires anaconda python + live creds.
+Loops tetris + wolf3d × baseline + memory, 12 steps each, with `--provider fallback`. Run from the active `.venv` (with GameWorld installed) + live creds. Override interpreter via `LUDUS_PYTHON`, step count via `STEPS`.
 
 ---
 

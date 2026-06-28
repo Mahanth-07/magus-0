@@ -108,19 +108,37 @@ Real run, `scripts/experiment.sh`, 12 steps each, **gpt-4o-mini vision via the I
 
 ## How to run
 
+### Setup (first time)
+
+```bash
+# 1. Clone this repo, then create one env with the offline core + (optionally) GameWorld:
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt && pip install -e .
+
+# 2. (Live runs only) Clone GameWorld into ./gameworld and install its deps + Chromium:
+git clone https://github.com/gameworld-project/gameworld.git
+pip install -r gameworld/requirements.txt && playwright install chromium
+
+# 3. (Live runs only) The 34-game HTML library is nested under benchmark/ in its repo —
+#    copy the games into place so they sit at gameworld/games/benchmark/<game>/index.html:
+git clone https://github.com/gameworld-dev/gameworld-games.git /tmp/gw-games
+cp -R /tmp/gw-games/benchmark/* gameworld/games/benchmark/ && rm -rf /tmp/gw-games
+```
+
+GameWorld is found at `./gameworld` by default; set `GAMEWORLD_ROOT=/path/to/gameworld` to override.
+Offline (tests + `--fake`) needs only step 1. Live runs need all three + a `.env` (below).
+
 ### Offline (no creds, no browser)
 
 ```bash
-# Unit tests (43, all offline):
-/Users/mahanth/ludus/.venv/bin/pytest -v
-
-# Fake run (no browser, mock provider):
-/opt/anaconda3/bin/python -m ludus.cli tetris baseline --provider mock --fake --steps 5
+source .venv/bin/activate
+pytest -v                                              # 43 tests, all offline
+python -m ludus.cli tetris baseline --provider mock --fake --steps 5   # fake run, no browser
 ```
 
 ### Live (browser + creds)
 
-Create `~/ludus/.env` (auto-loaded by the CLI — no sourcing needed):
+Create a `.env` in the repo root (auto-loaded by the CLI — no sourcing needed):
 
 ```bash
 INSFORGE_API_KEY=ik_...
@@ -131,26 +149,27 @@ INSFORGE_S3_BUCKET=<your-bucket>                                # created in the
 ANTHROPIC_API_KEY=sk-ant-...                                    # optional fallback provider
 ```
 
-Then create the InsForge tables once, and run:
+Then create the InsForge tables once, and run (from the activated `.venv`):
 
 ```bash
-/opt/anaconda3/bin/python scripts/insforge_setup.py            # creates ludus_episodes + ludus_steps
-/opt/anaconda3/bin/python -m ludus.cli tetris baseline --provider gateway --steps 12
-/opt/anaconda3/bin/python -m ludus.cli wolf3d memory  --provider gateway --steps 12
+source .venv/bin/activate
+python scripts/insforge_setup.py                                  # creates ludus_episodes + ludus_steps
+python -m ludus.cli tetris baseline --provider gateway --steps 12
+python -m ludus.cli wolf3d memory  --provider gateway --steps 12
 ```
 
-`--provider fallback` chains gateway → Anthropic → mock (warns loudly if it degrades to mock, so a misconfigured run is never silent). Live runs need the **base anaconda** python (it has Playwright + GameWorld's deps); the offline tests run in `.venv`.
+`--provider fallback` chains gateway → Anthropic → mock (warns loudly if it degrades to mock, so a misconfigured run is never silent). Live runs need GameWorld + its deps installed in the active env (see Setup); offline tests need none of that.
 
 ### Experiment (baseline vs memory, 2 games)
 
 ```bash
-bash scripts/experiment.sh   # requires anaconda python + live creds
+source .venv/bin/activate && bash scripts/experiment.sh          # needs GameWorld + live creds
 ```
 
 ### Dashboard
 
 ```bash
-/Users/mahanth/ludus/.venv/bin/python -m uvicorn server.app:app --port 8137
+.venv/bin/python -m uvicorn server.app:app --port 8137
 # open http://localhost:8137 — polls /api/state every 1.2s
 ```
 

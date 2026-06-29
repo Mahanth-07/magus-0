@@ -1,4 +1,4 @@
-# Ludus — Game-Agnostic AI Agent
+# Magus-0 — Game-Agnostic AI Agent
 
 **Hackathon tracks:** GameCraft Arena · Best Use of InsForge
 
@@ -58,7 +58,7 @@ In parallel, a **π0-style distillation loop** uses a classical expert teacher t
 
 ## InsForge Integration
 
-| Layer | What Ludus writes |
+| Layer | What Magus-0 writes |
 |---|---|
 | **Postgres** | One row per step (`StepRecord`) — decision, metrics, rule learned, screenshot reference. One `EpisodeResult` per run. |
 | **S3** | Per-step screenshots (`step_XXXX.png`) alongside the JSONL trace. |

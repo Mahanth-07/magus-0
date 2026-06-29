@@ -1,10 +1,10 @@
-# Ludus — Design Spec
+# Magus-0 — Design Spec
 
 **Date:** 2026-06-28
 **Status:** Approved (brainstorming → plan)
 **Context:** Live 6-hour hackathon build. Target track: GameCraft Arena + **Best Use of InsForge**.
 
-## 1. What Ludus is
+## 1. What Magus-0 is
 
 A **shared, game-agnostic planner** that plays multiple GameWorld browser games by reasoning over
 screenshots, choosing **semantic macro-actions**, predicting outcomes, reflecting on prediction error,
@@ -45,7 +45,7 @@ state-based metric — across more than one game, using one shared brain.
 
 ```
 GameWorld screenshot
-  → Shared Ludus planner (visual reasoning, action selection, expected-result prediction)
+  → Shared Magus-0 planner (visual reasoning, action selection, expected-result prediction)
   → Semantic macro-action
   → GameWorld semantic-control mapper
   → Browser action
@@ -86,7 +86,7 @@ Validation failure → Tenacity retry, feeding the validation error back into th
 `OpenAICompatProvider`, `MockProvider`. Selection by config + availability; the gateway has the
 Anthropic fallback wired so a flaky/rate-limited gateway never kills the loop.
 
-### `LudusPlanner` (game-agnostic)
+### `MagusPlanner` (game-agnostic)
 Inputs: current screenshot, objective, legal semantic actions, recent action outcomes, learned rules.
 Output: `Decision`. Contains all reasoning/reflection/memory logic. Knows nothing about any specific
 game's strategy.

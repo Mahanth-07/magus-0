@@ -1,5 +1,5 @@
 """
-Ludus minimal dashboard — FastAPI server.
+Magus-0 minimal dashboard — FastAPI server.
 
 Reads from runs/ on disk (decoupled from the loop).
 Start: .venv/bin/python -m uvicorn server.app:app --port 8137
@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 
 RUNS_DIR = Path(__file__).parent.parent / "runs"
 
-app = FastAPI(title="Ludus Dashboard")
+app = FastAPI(title="Magus-0 Dashboard")
 
 
 def _latest_run_dir() -> Path | None:
@@ -120,7 +120,7 @@ _HTML = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>Ludus Dashboard</title>
+<title>Magus-0 Dashboard</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,sans-serif;background:#0f0f13;color:#e2e8f0;min-height:100vh;padding:1.5rem}
@@ -143,7 +143,7 @@ _HTML = """<!doctype html>
 </style>
 </head>
 <body>
-<h1>Ludus Dashboard</h1>
+<h1>Magus-0 Dashboard</h1>
 <div class="grid">
   <div class="panel">
     <h2>Latest Screenshot</h2>

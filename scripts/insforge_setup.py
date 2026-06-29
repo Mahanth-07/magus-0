@@ -1,4 +1,4 @@
-"""Create the Ludus tables in InsForge via the admin API (idempotent-ish).
+"""Create the Magus-0 tables in InsForge via the admin API (idempotent-ish).
 
 InsForge creates tables through POST /api/database/tables (not raw SQL), so this is
 the real mechanism behind supabase/migrations/0001_ludus.sql. Run once after setting

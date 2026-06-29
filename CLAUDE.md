@@ -1,6 +1,6 @@
-# CLAUDE.md — Ludus Repo Guide
+# CLAUDE.md — Magus-0 Repo Guide
 
-Ludus is a game-agnostic AI agent that plays GameWorld browser games via **semantic macro-actions**. One shared planner drives multiple games; it predicts outcomes, reflects on prediction error, and accumulates a compact **rulebook**. Board state is also sent as text alongside screenshots so placement is arithmetic, not pixel-guessing. Persistence is dual-write: local JSONL/PNG fallback + InsForge (Postgres traces + S3 screenshots).
+Magus-0 is a game-agnostic AI agent that plays GameWorld browser games via **semantic macro-actions**. One shared planner drives multiple games; it predicts outcomes, reflects on prediction error, and accumulates a compact **rulebook**. Board state is also sent as text alongside screenshots so placement is arithmetic, not pixel-guessing. Persistence is dual-write: local JSONL/PNG fallback + InsForge (Postgres traces + S3 screenshots).
 
 In parallel, a **π0-style distillation loop** uses a classical expert teacher (Tetris-only Dellacherie heuristic) to generate training labels, fine-tunes a small text LLM (Llama-3.2-3B-Instruct) via LoRA on Nebius AI Studio, and targets a student that plays at near-teacher level without a frontier model at inference time. A/B evaluation is in progress.
 

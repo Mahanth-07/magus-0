@@ -1,4 +1,4 @@
-"""Expert teacher for Ludus Tetris.
+"""Expert teacher for Magus-0 Tetris.
 
 A pure-Python, near-optimal placement policy used to GENERATE training data
 (state -> action macro) for later distillation into a learned model. It is a

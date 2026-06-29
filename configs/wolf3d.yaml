@@ -8,7 +8,13 @@
 # real serialized state shape (game_api.js getState(): metrics.kills/health/ammo/
 # lives/max_kills). Primary = kills (DISCOVERY.md §4; task 31_01 target 2).
 name: wolf3d
-objective: kill one enemy while preserving health
+objective: >-
+  Kill enemies while preserving health. The state text gives you the nearest enemy's
+  bearing and distance with explicit turn guidance. Turn toward it using the LEFT/RIGHT
+  guidance until it is centered (AHEAD), use move_forward to close the distance, and
+  attack ONLY when it is centered and close. Preserve health: back off if low. If no
+  enemy is listed, turn to scan, then move_forward to explore. Do not stand still and
+  wait when an enemy bearing is given.
 legal_actions: [move_forward, move_backward, turn_left, turn_right, attack, wait]
 primary_metric: kills
 higher_is_better: true

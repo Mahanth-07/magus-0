@@ -19,6 +19,7 @@ are bound to the loop that created them, so the browser must live for the loop's
 
 import asyncio
 import logging
+import math
 import os
 import sys
 import threading
@@ -148,6 +149,176 @@ def _tetris_state_text(state: dict) -> str:
     if metric_bits:
         lines.append(" ".join(metric_bits))
 
+    # --- LOOKAHEAD: enumerate candidate placements in code, let the model pick ---
+    # The VLM can't simulate piece interlock from a board summary, so we hand it the
+    # ranked candidate placements (rotation x column hard-drops) with their simulated
+    # results + the exact action macro that reaches each. Omitted gracefully if we
+    # can't read the active piece pose for this frame.
+    candidate_block = _tetris_candidate_block(board, player, active)
+    if candidate_block:
+        lines.append(candidate_block)
+
+    return "\n".join(lines)
+
+
+def _active_rotation_index(shape: str, active: set) -> int | None:
+    """Infer the active piece's rotation index by matching its normalized cells
+    against the ROTATIONS table. `active` is a set of (row, col). Returns the
+    rotation index, or None if it doesn't match any known orientation."""
+    from ludus.teacher.tetris_heuristic import ROTATIONS
+
+    shape = (shape or "").lower()
+    if shape not in ROTATIONS or not active:
+        return None
+    min_r = min(r for r, _ in active)
+    min_c = min(c for _, c in active)
+    norm = frozenset((c - min_c, r - min_r) for (r, c) in active)
+    for idx, cells in enumerate(ROTATIONS[shape]):
+        if frozenset(cells) == norm:
+            return idx
+    return None
+
+
+def _tetris_candidate_block(board, player, active) -> str:
+    """Build the ranked-candidate-placements text for the Tetris prompt.
+
+    Strips the active piece, infers its current leftmost col + rotation, runs the
+    lookahead, and renders a compact top-6 list. Returns "" (graceful no-op) if the
+    active piece pose can't be determined or anything goes wrong."""
+    try:
+        from ludus.teacher.tetris_heuristic import rank_placements, strip_active_piece
+
+        shape = player.get("shape") if isinstance(player, dict) else None
+        blocks = player.get("blocks") if isinstance(player, dict) else None
+        if not (shape and active and isinstance(blocks, list)):
+            return ""
+
+        current_left = min(c for _, c in active)
+        current_rotation = _active_rotation_index(shape, active)
+        if current_rotation is None:
+            return ""
+
+        stack = strip_active_piece(board, blocks)
+        cands = rank_placements(
+            stack, shape,
+            current_left=current_left,
+            current_rotation=current_rotation,
+            top_k=6,
+        )
+        if not cands:
+            return ""
+
+        out = [
+            "Candidate placements (each shows the resulting board if you pick it; "
+            "choose the BEST and return its exact actions):"
+        ]
+        for i, c in enumerate(cands):
+            out.append(
+                f"[{i}] rotate x{c['rotation']}, col {c['target_col']} -> "
+                f"holes {c['holes']}, maxH {c['max_height']}, "
+                f"lines {c['lines_cleared']}, actions={c['actions']}"
+            )
+        return "\n".join(out)
+    except Exception:  # never let the lookahead crash the prompt build
+        return ""
+
+
+def _relative_bearing(px: float, py: float, angle_deg: float, ex: float, ey: float) -> float:
+    """Relative bearing (degrees, [-180,180]) from the player's facing to an enemy tile.
+
+    CALIBRATED LIVE against 31_wolf3d (see git history): the player's forward vector is
+    (cos(angle_deg), sin(angle_deg)) in tile space where +x is right and +y is DOWN
+    (screen coords), so the absolute angle toward the enemy is atan2(ey-py, ex-px).
+    `turn_left` (ArrowLeft) INCREASES angle_deg; `turn_right` (ArrowRight) DECREASES it.
+
+    Returns angle_to_enemy - angle_deg normalized to [-180,180]:
+      > 0  -> enemy is counter-clockwise of facing -> turn LEFT to face it.
+      < 0  -> enemy is clockwise of facing         -> turn RIGHT to face it.
+    Verified live: turning RIGHT on a -63deg bearing drove |bearing| 63 -> 9 (centered).
+    """
+    enemy_ang = math.degrees(math.atan2(ey - py, ex - px))
+    return ((enemy_ang - angle_deg + 180) % 360) - 180
+
+
+def _bearing_phrase(bearing: float) -> str:
+    """Translate a relative bearing into turn guidance + a coarse direction word."""
+    mag = abs(bearing)
+    if mag <= 15:
+        return "it is directly AHEAD; attack now if close"
+    if mag >= 150:
+        side = "RIGHT" if bearing < 0 else "LEFT"
+        return f"it is BEHIND you -> turn {side} ~{mag:.0f}deg to face it"
+    side = "RIGHT" if bearing < 0 else "LEFT"
+    if bearing < 0:
+        zone = "AHEAD-RIGHT" if mag < 90 else "BEHIND-RIGHT"
+    else:
+        zone = "AHEAD-LEFT" if mag < 90 else "BEHIND-LEFT"
+    return f"turn {side} ~{mag:.0f}deg to face it (it is {zone})"
+
+
+def _wolf3d_state_text(state: dict) -> str:
+    """Render a compact spatial summary from a Wolf3D getState() dict.
+
+    Reports the player pose (tile, facing), health/ammo/weapon, and the nearest enemy's
+    bearing + distance with explicit turn guidance, then tactics. Returns "" if this
+    doesn't look like a Wolf3D state (no player.angle_deg), so it's a safe no-op.
+    """
+    player = _get_nested(state, "game_state.player") or {}
+    if not isinstance(player, dict) or not isinstance(player.get("angle_deg"), (int, float)):
+        return ""
+
+    lines: list[str] = []
+
+    ptx, pty = player.get("tile_x"), player.get("tile_y")
+    ang = player.get("angle_deg")
+    hp = player.get("health")
+    ammo = player.get("ammo")
+    weapon = player.get("weapon")
+    pose = f"Player tile=({ptx},{pty}) facing={ang:.0f}deg."
+    stat_bits = []
+    if isinstance(hp, (int, float)):
+        stat_bits.append(f"health={int(hp)}")
+    if isinstance(ammo, (int, float)):
+        stat_bits.append(f"ammo={int(ammo)}")
+    if weapon:
+        stat_bits.append(f"weapon={weapon}")
+    if stat_bits:
+        pose += " " + " ".join(stat_bits) + "."
+    lines.append(pose)
+
+    env = _get_nested(state, "game_state.environment") or {}
+    enemy = env.get("nearest_enemy") if isinstance(env, dict) else None
+    if isinstance(enemy, dict) and isinstance(enemy.get("tile_x"), (int, float)):
+        etx, ety = enemy.get("tile_x"), enemy.get("tile_y")
+        etype = enemy.get("type") or "enemy"
+        estate = enemy.get("state")
+        dist = enemy.get("distance_tiles")
+        bearing = _relative_bearing(ptx, pty, ang, etx, ety)
+        head = f"Nearest enemy: {etype}"
+        if estate:
+            head += f" ({estate})"
+        if isinstance(dist, (int, float)):
+            head += f", {dist:.1f} tiles away"
+        head += f" at tile ({etx},{ety}) -> {_bearing_phrase(bearing)}."
+        lines.append(head)
+    else:
+        lines.append("Nearest enemy: NONE listed (none in view) -> turn to scan, then move_forward to explore.")
+
+    metrics = state.get("metrics") or {}
+    rem = metrics.get("monsters_remaining")
+    total = metrics.get("total_monsters") or metrics.get("max_kills")
+    if isinstance(rem, (int, float)):
+        if isinstance(total, (int, float)):
+            lines.append(f"Monsters remaining: {int(rem)} of {int(total)}.")
+        else:
+            lines.append(f"Monsters remaining: {int(rem)}.")
+
+    lines.append(
+        "Tactics: turn toward the enemy using the LEFT/RIGHT guidance until it is "
+        "centered (AHEAD), move_forward to close distance, attack only when facing it "
+        "and close; back off / strafe if health is low. If no enemy is listed, turn to "
+        "scan, then move_forward to explore."
+    )
     return "\n".join(lines)
 
 
@@ -306,15 +477,19 @@ class GameWorldClient:
         self._submit(self._mgr.resume_game())
 
     def state_text(self) -> str:
-        """Compact textual board summary from getState(), for the planner prompt.
+        """Compact textual state summary from getState(), for the planner prompt.
 
-        Lets the model reason about placement numerically (column heights, holes)
-        instead of reading pixels. Empty string for non-Tetris games / states with
-        no board grid, so it's a no-op there.
+        Tetris: column heights, holes + candidate placements. Wolf3D: player pose +
+        nearest-enemy bearing/distance + tactics. Tries Tetris first (board grid), then
+        Wolf3D (player.angle_deg). Empty string if neither shape is recognizable, so
+        it's a safe no-op for other games / loading states.
         """
         self._ensure_started()
         state = self._submit(self._mgr.get_game_state()) or {}
-        return _tetris_state_text(state)
+        tetris = _tetris_state_text(state)
+        if tetris:
+            return tetris
+        return _wolf3d_state_text(state)
 
     def read_partner_actions(self) -> list[str]:
         self._ensure_started()

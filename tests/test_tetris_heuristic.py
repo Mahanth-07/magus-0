@@ -13,6 +13,7 @@ from ludus.teacher.tetris_heuristic import (
     column_heights,
     count_holes,
     drop_piece,
+    rank_placements,
     strip_active_piece,
 )
 
@@ -283,3 +284,100 @@ def test_best_move_does_not_mutate_input_board():
     snapshot = [row[:] for row in b]
     best_move(b, "l", current_left=3, current_rotation=0)
     assert b == snapshot
+
+
+# --------------------------------------------------------------------------
+# rank_placements — the lookahead tool the VLM picks from
+# --------------------------------------------------------------------------
+
+def test_rank_placements_returns_candidates_with_expected_keys():
+    b = empty_board()
+    cands = rank_placements(b, "i", current_left=3, current_rotation=0, top_k=6)
+    assert isinstance(cands, list)
+    assert 1 <= len(cands) <= 6
+    for c in cands:
+        for key in ("rotation", "target_col", "holes", "max_height",
+                    "lines_cleared", "actions"):
+            assert key in c
+        assert isinstance(c["actions"], list)
+
+
+def test_rank_placements_flat_i_candidate_exists_with_no_holes():
+    # On an empty board there must be a flat-laying I placement with holes=0.
+    b = empty_board()
+    cands = rank_placements(b, "i", current_left=3, current_rotation=0, top_k=10)
+    flat = [c for c in cands if c["rotation"] == 0 and c["holes"] == 0]
+    assert flat, "expected at least one flat-I candidate with 0 holes"
+
+
+def test_rank_placements_sorted_best_first_min_holes():
+    # The chosen best (index 0) must have the minimum holes among all candidates.
+    b = empty_board()
+    heights = [5, 2, 6, 1, 4, 3, 7, 2, 5, 1]
+    for c, h in enumerate(heights):
+        for r in range(ROWS - h, ROWS):
+            b[r][c] = 1
+    cands = rank_placements(b, "s", current_left=3, current_rotation=0, top_k=20)
+    assert cands
+    best = cands[0]
+    assert best["holes"] == min(c["holes"] for c in cands)
+    # confirm the sort ordering is actually best-first by the spec key
+    keys = [(-c["lines_cleared"], c["holes"], c["max_height"]) for c in cands]
+    assert keys == sorted(keys)
+
+
+def test_rank_placements_every_candidate_action_ends_in_drop():
+    b = empty_board()
+    for shape in ["i", "o", "j", "l", "s", "t", "z"]:
+        cands = rank_placements(b, shape, current_left=3, current_rotation=0)
+        assert cands
+        for c in cands:
+            assert c["actions"], "actions must be non-empty"
+            assert c["actions"][-1] == "drop"
+            assert all(a in {"left", "right", "rotate", "drop"} for a in c["actions"])
+
+
+def test_rank_placements_top_k_respected():
+    b = empty_board()
+    cands = rank_placements(b, "t", current_left=3, current_rotation=0, top_k=3)
+    assert len(cands) <= 3
+
+
+def test_rotation_left_shift_matches_live_j_piece():
+    # Live-observed (29_tetris, headless): the J piece's leftmost column shifts
+    # +1 after a single clockwise rotate from spawn (rot0 -> rot1).
+    from ludus.teacher.tetris_heuristic import _rotation_left_shift
+    assert _rotation_left_shift("j", 0) == 0
+    assert _rotation_left_shift("j", 1) == 1
+    # full cycle returns to the spawn position
+    assert _rotation_left_shift("j", 4) == 0
+    # o-piece (2x2 square) never shifts under rotation
+    assert _rotation_left_shift("o", 1) == 0
+    assert _rotation_left_shift("o", 2) == 0
+
+
+def test_rank_placements_prefers_line_clear_first():
+    # Deep well at col 9 -> a vertical I clears 4 lines; that must rank #1.
+    b = empty_board()
+    for r in range(ROWS - 4, ROWS):
+        for c in range(0, COLS - 1):
+            b[r][c] = 1
+    cands = rank_placements(b, "i", current_left=3, current_rotation=0, top_k=6)
+    assert cands[0]["lines_cleared"] == 4
+    assert cands[0]["rotation"] == 1  # vertical
+
+
+def test_rank_placements_macro_matches_pose():
+    # The macro is computed from the current pose AND compensates for the live
+    # rotation-induced column shift: net horizontal == target - (current_left + shift),
+    # so a blind open-loop apply lands the piece in target_col.
+    from ludus.teacher.tetris_heuristic import _rotation_left_shift
+    b = empty_board()
+    cands = rank_placements(b, "j", current_left=5, current_rotation=0, top_k=10)
+    for c in cands:
+        acts = c["actions"]
+        n_right = acts.count("right")
+        n_left = acts.count("left")
+        rot = acts.count("rotate")
+        shift = _rotation_left_shift("j", rot)
+        assert (n_right - n_left) == (c["target_col"] - (5 + shift))

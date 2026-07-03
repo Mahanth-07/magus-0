@@ -39,6 +39,18 @@ def build_user_text(
     recent_outcomes = recent_outcomes or []
     partner_recent_actions = partner_recent_actions or []
     state_section = f"Game state:\n{state_text}\n" if state_text else ""
+    # When the state provides pre-simulated Candidate placements (Tetris lookahead),
+    # add a final, unambiguous directive nearest the model's output: copy candidate [0]'s
+    # actions verbatim. This is where the model has the strongest recency bias, so it
+    # reliably overrides any urge to improvise its own moves.
+    candidate_directive = ""
+    if "Candidate placements" in (state_text or ""):
+        candidate_directive = (
+            "IMPORTANT: The candidates above are pre-computed and sorted best-first. "
+            "Set \"actions\" to candidate [0]'s actions array EXACTLY as written "
+            "(copy every element, including each \"rotate\"), and set \"action\" to its "
+            "last element. Do not improvise or omit rotates.\n"
+        )
     return (
         f"Objective: {objective}\n"
         f"Legal actions: {', '.join(legal_actions)}\n"
@@ -46,6 +58,7 @@ def build_user_text(
         + f"Recent outcomes:\n" + ("\n".join(recent_outcomes) or "(none)") + "\n"
         f"Partner recent actions:\n" + ("\n".join(partner_recent_actions) or "(none)") + "\n"
         f"Learned rules:\n{learned_rules or '(none)'}\n"
+        + candidate_directive
     )
 
 

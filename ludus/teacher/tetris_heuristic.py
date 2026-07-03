@@ -80,6 +80,79 @@ ROTATIONS: dict[str, list[tuple[tuple[int, int], ...]]] = {
 SPAWN_LEFT_DEFAULT = 3
 
 # --------------------------------------------------------------------------
+# Game-accurate rotation geometry (29_tetris Shapes.js + ControlGroup.js).
+# Used to predict how a clockwise rotate shifts the piece's LEFTMOST column in
+# the live game, so an OPEN-LOOP macro (rotate-then-shift, no re-read) lands the
+# piece in the intended column. The live teacher driver re-reads instead; the
+# RL/VLM loop applies macros blind, so the macro must bake the shift in.
+#
+# Each entry: (spin, base_relative_cells). `base_relative_cells` are the spawn
+# block positions RELATIVE to the rotation base point (baseX,baseY), straight
+# from Shapes.js `pos`. 'block' pieces rotate via the block-spin transform
+# (ControlGroup.tryTurn, spin==='block'); 'corner' pieces (i,o) rotate via the
+# corner/point transform. We replicate that math (kick = 0, the common
+# unobstructed case) to get post-rotation cells, hence the leftmost-col shift.
+# --------------------------------------------------------------------------
+_SHAPE_SPAWN: dict[str, tuple[str, tuple[tuple[int, int], ...]]] = {
+    "i": ("corner", ((-2, -1), (-1, -1), (0, -1), (1, -1))),
+    "o": ("corner", ((-1, 0), (0, 0), (-1, -1), (0, -1))),
+    "j": ("block", ((-1, -1), (-1, 0), (0, 0), (1, 0))),
+    "l": ("block", ((-1, 0), (0, 0), (1, 0), (1, -1))),
+    "s": ("block", ((-1, 0), (0, 0), (0, -1), (1, -1))),
+    "z": ("block", ((-1, -1), (0, -1), (0, 0), (1, 0))),
+    "t": ("block", ((-1, 0), (0, 0), (0, -1), (1, 0))),
+}
+
+
+def _turn_cw_block(cells):
+    """Replicate ControlGroup.tryTurn(cw=true, spin=='block'), kick=0.
+    `cells` are base-relative (x,y); returns the rotated base-relative cells."""
+    return [(-y, x) for (x, y) in cells]
+
+
+def _turn_cw_corner(cells):
+    """Replicate ControlGroup.tryTurn(cw=true, point-turning branch), kick=0.
+    Implements the +1/-1 corner adjustment around the base point."""
+    out = []
+    for (x, y) in cells:
+        ox, oy = x, y
+        if ox >= 0:
+            ox += 1
+        if oy >= 0:
+            oy += 1
+        nx = -oy
+        ny = ox
+        if nx > 0:
+            nx -= 1
+        if ny > 0:
+            ny -= 1
+        out.append((nx, ny))
+    return out
+
+
+def _rotation_left_shift(shape: str, presses: int) -> int:
+    """How far the LEFTMOST column moves (game-accurate, kick=0) after applying
+    `presses` clockwise rotations to a freshly-spawned `shape`. Positive = the
+    piece shifts right; the open-loop macro subtracts this from its right-shift.
+
+    Computed from the base-relative spawn cells, so it is independent of the
+    piece's horizontal position (rotation is linear around the base point); the
+    only divergence in the live game is a wall-kick, which is rare for a piece
+    still falling freely near spawn.
+    """
+    shape = shape.lower()
+    if shape not in _SHAPE_SPAWN or presses <= 0:
+        return 0
+    spin, cells = _SHAPE_SPAWN[shape]
+    turn = _turn_cw_corner if spin == "corner" else _turn_cw_block
+    start_min_x = min(x for x, _ in cells)
+    cur = list(cells)
+    for _ in range(presses % 4):
+        cur = turn(cur)
+    end_min_x = min(x for x, _ in cur)
+    return end_min_x - start_min_x
+
+# --------------------------------------------------------------------------
 # Dellacherie-style feature weights. Standard, well-known good values:
 # heavily penalize holes, penalize aggregate height / bumpiness / landing
 # height / wells, reward line clears. Higher score = better placement.
@@ -337,6 +410,92 @@ def _macro(target_rotation: int, target_col: int, current_left: int) -> list[str
         actions.extend(["left"] * (-delta))
     actions.append("drop")
     return actions
+
+
+def _macro_live(shape: str, rotate_presses: int, target_col: int, current_left: int) -> list[str]:
+    """Open-loop macro that COMPENSATES for the live rotation-induced column shift.
+
+    Order: rotate cw N times, then shift left/right, then drop. Unlike _macro (which
+    assumes rotation keeps the leftmost column fixed — true only when re-reading),
+    this predicts the game's actual post-rotation leftmost column via
+    _rotation_left_shift and corrects the horizontal delta, so a blind apply (the
+    RL/VLM loop) still lands the piece in `target_col`.
+    """
+    actions: list[str] = ["rotate"] * rotate_presses
+    shift = _rotation_left_shift(shape, rotate_presses)
+    effective_left = current_left + shift  # where the leftmost col will be post-rotation
+    delta = target_col - effective_left
+    if delta > 0:
+        actions.extend(["right"] * delta)
+    elif delta < 0:
+        actions.extend(["left"] * (-delta))
+    actions.append("drop")
+    return actions
+
+
+def rank_placements(
+    board: list[list[int]],
+    shape: str,
+    *,
+    current_left: int = SPAWN_LEFT_DEFAULT,
+    current_rotation: int = 0,
+    top_k: int = 6,
+) -> list[dict]:
+    """Enumerate every (rotation, column), hard-drop, and rank the placements.
+
+    This is the LOOKAHEAD TOOL: instead of asking a VLM to imagine piece interlock
+    from a board summary (which it can't), we simulate every distinct candidate in
+    code and hand the model the resulting board features + the exact action macro
+    that reaches each one. The model only has to PICK.
+
+    Reuses the same drop/feature/rotation machinery as best_move, and computes each
+    candidate's `actions` from the CURRENT piece pose (current_left, current_rotation)
+    so the macro actually reaches the placement in the live game.
+
+    Args:
+      board: settled stack (strip the active piece first via strip_active_piece).
+      shape: one of i,o,j,l,s,t,z (case-insensitive).
+      current_left: leftmost column of the active piece NOW (for the macro).
+      current_rotation: current rotation index of the active piece NOW.
+      top_k: number of best candidates to return.
+
+    Returns a list (best-first) of dicts, each:
+      {"rotation": r, "target_col": c, "holes": H, "max_height": MH,
+       "lines_cleared": L, "actions": [<rotate xN, left/right..., drop>]}
+    Sorted by lines_cleared desc, then holes asc, then max_height asc.
+    """
+    shape = shape.lower()
+    if shape not in ROTATIONS:
+        raise ValueError(f"unknown shape {shape!r}")
+
+    cols = len(board[0]) if board else 0
+    cycle = len(ROTATIONS[shape])
+
+    candidates: list[dict] = []
+    for rot_idx, cells in enumerate(ROTATIONS[shape]):
+        width = max(c for c, _ in cells) + 1
+        for left in range(0, cols - width + 1):
+            res = drop_piece(board, cells, left)
+            if res is None:
+                continue
+            new_board, landing_top_row, lines = res
+            _, feats = _score_board(new_board, landing_top_row, lines)
+            rotate_presses = (rot_idx - current_rotation) % cycle
+            actions = _macro_live(shape, rotate_presses, left, current_left)
+            candidates.append({
+                "rotation": rot_idx,
+                "target_col": left,
+                "holes": feats["holes"],
+                "max_height": feats["max_height"],
+                "lines_cleared": lines,
+                "actions": actions,
+            })
+
+    # best-first: most lines cleared, then fewest holes, then lowest/flattest stack
+    candidates.sort(
+        key=lambda c: (-c["lines_cleared"], c["holes"], c["max_height"])
+    )
+    return candidates[:top_k]
 
 
 def best_move(

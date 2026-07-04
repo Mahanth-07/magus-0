@@ -26,6 +26,9 @@ class _SyntheticBase:
     def read_partner_actions(self) -> list[str]:
         return []
 
+    def state_text(self) -> str:
+        return ""
+
     def raw_state(self) -> dict:  # pragma: no cover - overridden
         raise NotImplementedError
 
@@ -93,6 +96,10 @@ class CounterGame(_SyntheticBase):
         self.score = 0
         self.health = 100
         self.steps = 0
+
+    @property
+    def terminal(self) -> bool:
+        return self.health <= 0
 
     def apply(self, command: dict) -> None:
         if self.health <= 0:

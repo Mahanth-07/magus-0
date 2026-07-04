@@ -30,7 +30,11 @@ def test_gridworld_walls_clamp_movement():
 
 
 def test_gridworld_reaching_goal_scores_and_respawns_goal():
-    g = GridWorldGame()  # player (2,2), first goal (3,2)
+    g = GridWorldGame()
+    st0 = g.raw_state()
+    assert (st0["game_state"]["player"]["x"], st0["game_state"]["player"]["y"]) == (2, 2)
+    assert (st0["game_state"]["environment"]["goal"]["x"],
+            st0["game_state"]["environment"]["goal"]["y"]) == (3, 2)
     _press(g, "ArrowRight")  # onto the goal
     st = g.raw_state()
     assert st["metrics"]["score"] == 10
@@ -61,6 +65,16 @@ def test_gridworld_is_deterministic():
     assert a.raw_state() == b.raw_state()
 
 
+def test_gridworld_apply_after_terminal_is_a_frozen_noop():
+    g = GridWorldGame()
+    _press(g, "q")
+    assert g.raw_state()["metrics"]["steps"] == 1  # the quit press itself counts
+    frozen = g.raw_state()
+    _press(g, "ArrowRight")
+    _press(g, "x")
+    assert g.raw_state() == frozen  # steps, score, player all frozen
+
+
 # --- CounterGame -------------------------------------------------------------
 
 def test_counter_x_increments_score():
@@ -79,6 +93,26 @@ def test_counter_z_drains_health_to_terminal():
     assert st["status"] == "terminal"
 
 
+def test_counter_apply_after_terminal_is_a_frozen_noop():
+    g = CounterGame()
+    for _ in range(10):
+        _press(g, "z")
+    assert g.terminal is True
+    frozen = g.raw_state()
+    _press(g, "x")
+    assert g.raw_state() == frozen
+
+
+def test_counter_noop_key_ticks_only_steps():
+    g = CounterGame()
+    before = g.raw_state()
+    _press(g, "ArrowRight")
+    after = g.raw_state()
+    assert after["metrics"]["score"] == before["metrics"]["score"]
+    assert after["metrics"]["health"] == before["metrics"]["health"]
+    assert after["metrics"]["steps"] == before["metrics"]["steps"] + 1
+
+
 # --- client-interface compliance (what run_episode/prober need) --------------
 
 def test_synthetic_games_speak_the_client_interface():
@@ -89,3 +123,8 @@ def test_synthetic_games_speak_the_client_interface():
         assert g.read_partner_actions() == []
         assert isinstance(g.raw_state(), dict)
         g.close()  # must not raise
+
+
+def test_synthetic_games_expose_state_text():
+    for g in (GridWorldGame(), CounterGame()):
+        assert g.state_text() == ""

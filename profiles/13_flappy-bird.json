@@ -1,0 +1,152 @@
+{
+  "game_id": "13_flappy-bird",
+  "controls": {
+    "use_arrowleft": "ArrowLeft",
+    "move_down": "ArrowRight",
+    "move_right": "ArrowUp",
+    "move_down_arrowdown": "ArrowDown",
+    "move_left": "Space",
+    "use_x": "x",
+    "move_right_z": "z",
+    "use_a": "a",
+    "move_right_d": "d",
+    "move_up": "w",
+    "move_down_s": "s"
+  },
+  "control_effects": {
+    "use_arrowleft": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "move_down": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "move_right": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "move_down_arrowdown": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "move_left": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "use_x": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "move_right_z": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "use_a": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "move_right_d": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "move_up": [
+      "game_state.entities[0].props.gap_bottom",
+      "game_state.entities[0].props.gap_top",
+      "game_state.entities[0].props.width",
+      "game_state.entities[0].type",
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.gap_bottom",
+      "game_state.environment.next_pipe.gap_top",
+      "game_state.environment.next_pipe.width",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.pipes_visible"
+    ],
+    "move_down_s": [
+      "game_state.entities[0].x",
+      "game_state.environment.next_pipe.x",
+      "game_state.player.rotation",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y"
+    ]
+  },
+  "metrics": [
+    "attempts",
+    "best_score",
+    "distance",
+    "pipes_visible",
+    "primary_score"
+  ],
+  "primary_metric": "best_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 13_flappy-bird. Maximize best_score. Available controls: use_arrowleft (ArrowLeft), move_down (ArrowRight), move_right (ArrowUp), move_down_arrowdown (ArrowDown), move_left (Space), use_x (x), move_right_z (z), use_a (a), move_right_d (d), move_up (w), move_down_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizeing best_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "NoneType",
+    "game_state.player.x": "float",
+    "game_state.player.y": "float",
+    "game_state.player.vy": "float",
+    "game_state.player.rotation": "float",
+    "game_state.environment.phase": "str",
+    "game_state.completion_progress": "NoneType",
+    "metrics.primary_score": "int",
+    "metrics.distance": "int",
+    "metrics.attempts": "int",
+    "metrics.pipes_visible": "int",
+    "metrics.best_score": "int",
+    "debug.raw_state": "str",
+    "debug.last_reset_method": "NoneType"
+  }
+}

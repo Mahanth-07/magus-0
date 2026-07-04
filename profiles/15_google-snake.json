@@ -1,0 +1,154 @@
+{
+  "game_id": "15_google-snake",
+  "controls": {
+    "move_right": "ArrowLeft",
+    "move_right_arrowright": "ArrowRight",
+    "move_up": "ArrowUp",
+    "move_up_arrowdown": "ArrowDown",
+    "move_up_space": "Space",
+    "move_right_x": "x",
+    "move_right_z": "z",
+    "move_right_a": "a",
+    "move_right_d": "d",
+    "move_up_w": "w",
+    "move_up_s": "s"
+  },
+  "control_effects": {
+    "move_right": [
+      "game_state.entities[0].x",
+      "game_state.entities[1].x",
+      "game_state.entities[2].x",
+      "game_state.entities[3].x",
+      "game_state.player.x"
+    ],
+    "move_right_arrowright": [
+      "game_state.entities[0].x",
+      "game_state.entities[1].x",
+      "game_state.entities[2].x",
+      "game_state.entities[3].x",
+      "game_state.player.x"
+    ],
+    "move_up": [
+      "game_state.entities[0].y",
+      "game_state.entities[1].y",
+      "game_state.entities[2].x",
+      "game_state.entities[3].x",
+      "game_state.player.y"
+    ],
+    "move_up_arrowdown": [
+      "game_state.entities[0].y",
+      "game_state.entities[1].y",
+      "game_state.entities[2].y",
+      "game_state.entities[3].y",
+      "game_state.player.y"
+    ],
+    "move_up_space": [
+      "game_state.entities[0].y",
+      "game_state.entities[1].y",
+      "game_state.entities[2].y",
+      "game_state.entities[3].y",
+      "game_state.player.y"
+    ],
+    "move_right_x": [
+      "game_state.entities[0].x",
+      "game_state.entities[1].x",
+      "game_state.entities[2].x",
+      "game_state.entities[3].x",
+      "game_state.player.x"
+    ],
+    "move_right_z": [
+      "game_state.entities[0].x",
+      "game_state.entities[1].x",
+      "game_state.entities[2].x",
+      "game_state.entities[3].x",
+      "game_state.player.x"
+    ],
+    "move_right_a": [
+      "game_state.entities[0].x",
+      "game_state.entities[1].x",
+      "game_state.entities[2].x",
+      "game_state.entities[3].x",
+      "game_state.player.x"
+    ],
+    "move_right_d": [
+      "game_state.entities[0].x",
+      "game_state.entities[1].x",
+      "game_state.entities[2].x",
+      "game_state.entities[3].x",
+      "game_state.player.x"
+    ],
+    "move_up_w": [
+      "game_state.entities[0].y",
+      "game_state.entities[2].x",
+      "game_state.entities[3].x",
+      "game_state.entities[4].x",
+      "game_state.player.y"
+    ],
+    "move_up_s": [
+      "game_state.entities[0].y",
+      "game_state.entities[1].y",
+      "game_state.entities[2].y",
+      "game_state.entities[4].x",
+      "game_state.player.y"
+    ]
+  },
+  "metrics": [
+    "attempts",
+    "board_height",
+    "board_width",
+    "distance",
+    "primary_score",
+    "snake_length",
+    "speed"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 15_google-snake. Maximize primary_score. Available controls: move_right (ArrowLeft), move_right_arrowright (ArrowRight), move_up (ArrowUp), move_up_arrowdown (ArrowDown), move_up_space (Space), move_right_x (x), move_right_z (z), move_right_a (a), move_right_d (d), move_up_w (w), move_up_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizeing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "NoneType",
+    "game_state.player.x": "int",
+    "game_state.player.y": "int",
+    "game_state.player.direction": "str",
+    "game_state.environment.board.width": "int",
+    "game_state.environment.board.height": "int",
+    "game_state.completion_progress": "NoneType",
+    "game_state.entities[0].type": "str",
+    "game_state.entities[0].x": "int",
+    "game_state.entities[0].y": "int",
+    "game_state.entities[1].type": "str",
+    "game_state.entities[1].x": "int",
+    "game_state.entities[1].y": "int",
+    "game_state.entities[2].type": "str",
+    "game_state.entities[2].x": "int",
+    "game_state.entities[2].y": "int",
+    "game_state.entities[3].type": "str",
+    "game_state.entities[3].x": "int",
+    "game_state.entities[3].y": "int",
+    "metrics.primary_score": "int",
+    "metrics.distance": "int",
+    "metrics.attempts": "int",
+    "metrics.snake_length": "int",
+    "metrics.speed": "int",
+    "metrics.board_width": "int",
+    "metrics.board_height": "int",
+    "debug.game_over": "bool",
+    "debug.closed": "bool",
+    "debug.settings_open": "bool",
+    "debug.direction": "str",
+    "debug.ticks": "int",
+    "debug.tick_ms": "int",
+    "debug.last_reset_method": "NoneType"
+  }
+}

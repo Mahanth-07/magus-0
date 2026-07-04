@@ -1,0 +1,111 @@
+{
+  "game_id": "05_breakout",
+  "controls": {
+    "move_left": "ArrowLeft",
+    "move_right": "ArrowRight",
+    "use_arrowdown": "ArrowDown",
+    "use_space": "Space",
+    "use_x": "x",
+    "use_z": "z",
+    "move_left_a": "a",
+    "move_right_d": "d",
+    "use_w": "w"
+  },
+  "control_effects": {
+    "move_left": [
+      "game_state.entities[0].x",
+      "game_state.player.x"
+    ],
+    "move_right": [
+      "game_state.entities[0].x",
+      "game_state.player.x"
+    ],
+    "use_arrowdown": [
+      "game_state.entities[0].vx",
+      "game_state.entities[0].vy",
+      "game_state.entities[0].x",
+      "game_state.entities[0].y"
+    ],
+    "use_space": [
+      "game_state.entities[0].vx",
+      "game_state.entities[0].vy",
+      "game_state.entities[0].x",
+      "game_state.entities[0].y"
+    ],
+    "use_x": [
+      "game_state.entities[0].x",
+      "game_state.entities[0].y"
+    ],
+    "use_z": [
+      "game_state.entities[0].x",
+      "game_state.entities[0].y"
+    ],
+    "move_left_a": [
+      "game_state.entities[0].x",
+      "game_state.entities[0].y",
+      "game_state.player.x"
+    ],
+    "move_right_d": [
+      "game_state.entities[0].x",
+      "game_state.entities[0].y",
+      "game_state.player.x"
+    ],
+    "use_w": [
+      "game_state.entities[0].x",
+      "game_state.entities[0].y"
+    ]
+  },
+  "metrics": [
+    "bricks_remaining",
+    "bricks_total",
+    "lives",
+    "primary_score"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 05_breakout. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), use_arrowdown (ArrowDown), use_space (Space), use_x (x), use_z (z), move_left_a (a), move_right_d (d), use_w (w). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizeing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "int",
+    "game_state.player.x": "float",
+    "game_state.player.y": "int",
+    "game_state.player.w": "int",
+    "game_state.player.h": "int",
+    "game_state.player.state": "str",
+    "game_state.environment.court_left": "int",
+    "game_state.environment.court_top": "int",
+    "game_state.environment.court_width": "int",
+    "game_state.environment.court_height": "int",
+    "game_state.environment.launch_pending": "bool",
+    "game_state.environment.launch_countdown": "int",
+    "game_state.completion_progress": "int",
+    "game_state.entities[0].type": "str",
+    "game_state.entities[0].x": "float",
+    "game_state.entities[0].y": "float",
+    "game_state.entities[0].vx": "int",
+    "game_state.entities[0].vy": "int",
+    "game_state.entities[0].state": "str",
+    "game_state.entities[0].props.countdown": "int",
+    "game_state.entities[0].props.radius": "float",
+    "metrics.primary_score": "int",
+    "metrics.lives": "int",
+    "metrics.bricks_remaining": "int",
+    "metrics.bricks_total": "int",
+    "debug.state": "str",
+    "debug.last_reset_method": "str",
+    "debug.requested_level": "NoneType",
+    "debug.requested_difficulty": "NoneType",
+    "debug.ball_moving": "bool"
+  }
+}

@@ -122,10 +122,13 @@ python -m ludus.cli induce <game> [--iterations 4]                      # -> wor
   primary-metric + player paths weigh 3x) gates INDUCED on BOTH train and holdout; train
   counterexamples drive up to `--iterations` repair rounds. Artifacts always saved, FAILED
   verdicts included (`worldmodels/<game>/report.json` has per-field accuracies).
-- Live status: `synthetic:grid` INDUCED (1.000 holdout); `29_tetris` FAILED honestly at 0.800
-  (piece y-positions are wall-clock-dependent — gravity during the press window). Known M3
-  carry-forward: mechanics rarer than (1−threshold) in the data can pass the gate wrong
-  (grid's goal mechanic, 4 events in 100 train cases).
+- Live status: `synthetic:grid` INDUCED (holdout 1.000 / train 0.993, +10 goal mechanic learned
+  from 4 observed events once rare transitions got prompt priority); `29_tetris` FAILED honestly
+  at 0.800 (piece y-positions are wall-clock-dependent — gravity during the press window).
+  M3 carry-forwards: rare-event coverage bounds learnability (grid's goal-respawn cycle: 4
+  observations → correctly copied through as unpredictable); threshold gates dilute mechanics
+  rarer than (1−threshold); wall-clock dynamics need time-delta inputs. Sharpest M2 lesson:
+  what the LLM doesn't see in the prompt, it INVENTS — prompt sampling is load-bearing.
 
 ---
 

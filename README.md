@@ -192,13 +192,18 @@ A/B eval: student 1022 vs gemini-2.5-flash 466 (live, 15 steps) ✅
    any profile with `--profile profiles/<game>.json`.
    **M2 world-model induction: ✅** `explore` collects (state, action, state') transitions;
    `induce` has an LLM write the game's `predict()` as sandboxed Python, validated field-by-field
-   against held-out episodes with a bounded counterexample-repair loop. Live results:
-   `synthetic:grid` **INDUCED** (holdout 1.000 / train 0.983, 1 iteration — Claude inferred grid
-   bounds, movement, and step dynamics from 100 random transitions); `29_tetris` **FAILED
+   against held-out episodes (gate requires BOTH train and holdout) with a bounded
+   counterexample-repair loop. Live results: `synthetic:grid` **INDUCED** (holdout 1.000 /
+   train 0.993, 1 iteration) — Claude inferred grid bounds, movement, step dynamics, AND the
+   +10 goal-scoring mechanic from 4 observed events once rare (metric-changing) transitions
+   got prompt priority; two earlier runs with those events buried hallucinated the mechanic,
+   the sharpest lesson of M2: *what the LLM doesn't see, it invents*. `29_tetris` **FAILED
    honestly at 0.800** with a measured boundary: piece y-positions are wall-clock-dependent
-   (gravity during the press window) — the partial-model limit the spec predicted. Known
-   limitation for M3: threshold gates are blind to mechanics rarer than (1−threshold) in the
-   data (grid's 4-events-in-100 goal mechanic passed the gate wrong).
+   (gravity during the press window) — the partial-model limit the spec predicted. M3
+   carry-forwards: rare-event coverage bounds what's learnable (grid's goal-respawn cycle,
+   4 observations, correctly copied through as unpredictable); threshold gates dilute
+   mechanics rarer than (1−threshold); wall-clock dynamics need time-delta inputs or
+   press-quantized stepping.
 
 ---
 

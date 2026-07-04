@@ -132,7 +132,7 @@ python -m ludus.cli induce <game> [--iterations 4]                      # -> wor
 ## Running tests
 
 ```bash
-.venv/bin/pytest -v --ignore=infra   # 128 tests, all offline
+.venv/bin/pytest -v --ignore=infra   # 215 tests, all offline
 ```
 
 Tests cover schemas (including `actions` macro + `state_text`), mock provider, fallback provider, outcome detection, reflection, rulebook, local store, dual store, loop, config loader, and the tetris adapter.
@@ -200,7 +200,7 @@ Fireboy & Watergirl requires `?autostart=1` — handled internally.
 
 - `InsForgeGatewayProvider` — model gateway (primary, vision-capable). Default model: `google/gemini-2.5-flash` (set via `INSFORGE_VISION_MODEL`).
 - `AnthropicProvider` — fallback via Anthropic API.
-- `MockProvider` — deterministic, offline, returns a fixed `Decision`. Used by all 128 tests.
+- `MockProvider` — deterministic, offline, returns a fixed `Decision`. Used by all 215 tests.
 - `NebiusProvider` — Nebius AI Studio; text-only or multimodal depending on `NEBIUS_MULTIMODAL`.
 - `FallbackProvider` — ordered list; degrades on error and logs `WARNING: degrading to ...`.
 - `DualWriteStore` — writes local first (required); InsForge write is best-effort. Emits a warning on InsForge failure, never raises.

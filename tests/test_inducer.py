@@ -133,7 +133,7 @@ def test_induce_fails_honestly_when_budget_exhausted(tmp_path):
     assert saved["status"] == "FAILED"
 
 
-def test_induced_gate_is_on_holdout_not_train(tmp_path):
+def test_report_n_cases_counts_holdout(tmp_path):
     # the saved report's n_cases must equal the HOLDOUT size (1 of 4 episodes)
     store = _store(tmp_path)
     train, holdout = store.split(holdout_frac=0.25, seed=5)
@@ -166,15 +166,17 @@ def test_prompt_sample_prioritizes_metric_changing_transitions():
     from ludus.worldmodel.transitions import Transition
 
     def noop(i):
+        # steps ticks every press (like real games) — must NOT be treated as rare
         return Transition(game_id="g", episode_id=f"e{i}", step=i,
                           action="move_right", key="R",
-                          before={"metrics": {"score": 0}, "game_state": {"player": {"x": i}}},
-                          after={"metrics": {"score": 0}, "game_state": {"player": {"x": i + 1}}})
+                          before={"metrics": {"score": 0, "steps": i}, "game_state": {"player": {"x": i}}},
+                          after={"metrics": {"score": 0, "steps": i + 1}, "game_state": {"player": {"x": i + 1}}})
 
+    # rare event also ticks steps — only the score change should mark it rare
     rare = Transition(game_id="g", episode_id="rare", step=0,
                       action="collect", key="c",
-                      before={"metrics": {"score": 0}, "game_state": {"player": {"x": 0}}},
-                      after={"metrics": {"score": 10}, "game_state": {"player": {"x": 0}}})
+                      before={"metrics": {"score": 0, "steps": 0}, "game_state": {"player": {"x": 0}}},
+                      after={"metrics": {"score": 10, "steps": 1}, "game_state": {"player": {"x": 0}}})
     # rare event buried far beyond the sample cutoff
     train = [noop(i) for i in range(MAX_PROMPT_TRANSITIONS + 20)] + [rare]
     _, user = build_synthesis_prompt("g", _grid_profile(), train, [], "")

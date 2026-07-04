@@ -5,8 +5,8 @@ important paths (primary metric, player state) weigh 3x. Counterexamples
 
 Comparison is over the flattened paths of the ACTUAL after-state — the model
 must reproduce reality; extra predicted fields are ignored, missing ones are
-wrong. `steps`/tick-style paths still count: they are trivially learnable
-(+1 per press) and a model that can't learn them deserves the penalty."""
+wrong. Tick/wall-clock paths (steps, timestamps) are excluded from grading
+— they are not game rules (prober parity)."""
 
 from __future__ import annotations
 

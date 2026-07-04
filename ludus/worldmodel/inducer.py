@@ -1,9 +1,11 @@
 # ludus/worldmodel/inducer.py
 """The induction loop: LLM writes predict(), validator grades it, failures
-come back as counterexamples, repeat within budget. Gate on HOLDOUT episodes;
-counterexamples for repair come from TRAIN (no leak of the gate set into the
-prompt). Artifacts (model.py + report.json) are always saved — a FAILED
-verdict with evidence beats a silent nothing (spec: no stage can lie)."""
+come back as counterexamples, repeat within budget. Gate on BOTH train and
+holdout (a model must explain all observed data; rare mechanics may only
+appear in train); counterexamples for repair come from TRAIN (no leak of the
+gate set into the prompt). Artifacts (model.py + report.json) are always
+saved — a FAILED verdict with evidence beats a silent nothing (spec: no stage
+can lie)."""
 
 from __future__ import annotations
 
@@ -12,7 +14,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from ludus.onboarding.diff import flatten_state
+from ludus.onboarding.diff import flatten_state, is_tick_path
 from ludus.onboarding.profile import GameProfile
 from ludus.worldmodel.sandbox import ALLOWED_IMPORTS, check_source
 from ludus.worldmodel.transitions import Transition, TransitionStore
@@ -72,8 +74,10 @@ def build_synthesis_prompt(
         "counters) from the observed transitions and reproduce them exactly."
     )
     def _changes_metrics(t: Transition) -> bool:
-        return flatten_state(t.before.get("metrics", {})) != flatten_state(
-            t.after.get("metrics", {}))
+        b = flatten_state(t.before.get("metrics", {}))
+        a = flatten_state(t.after.get("metrics", {}))
+        return any(b.get(p) != a.get(p)
+                   for p in b.keys() | a.keys() if not is_tick_path(p))
 
     # Rare mechanics live in metric-changing transitions (scoring, line
     # clears, damage); random exploration makes them scarce, so they get

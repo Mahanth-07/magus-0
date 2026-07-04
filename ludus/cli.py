@@ -12,6 +12,9 @@ from ludus.persistence.insforge import InsForgeStore
 from ludus.rulebook import Rulebook
 from ludus.gameworld_client import GameWorldClient, FakeGameWorld
 from ludus.loop import run_episode
+from ludus.adapters.generic import GenericAdapter
+from ludus.onboarding.onboard import onboard_game
+from ludus.onboarding.profile import GameProfile
 
 ADAPTERS = {"tetris": TetrisAdapter, "wolf3d": Wolf3DAdapter,
             "fireboy_watergirl": FireboyWatergirlAdapter}
@@ -35,8 +38,43 @@ def _load_dotenv(path: str = ".env") -> None:
         os.environ.setdefault(key.strip(), val.strip())
 
 
+# Synthetic games are onboardable/playable offline via "synthetic:<name>" ids —
+# used by tests and demos; real ids go through GameWorldClient.
+def _client_factory(game: str, timing_ms: int, headless: bool):
+    if game == "synthetic:grid":
+        from ludus.synthetic import GridWorldGame
+        return GridWorldGame
+    if game == "synthetic:counter":
+        from ludus.synthetic import CounterGame
+        return CounterGame
+    gw_id = GAMEWORLD_IDS.get(game, game)  # raw catalog ids (e.g. 05_snake) pass through
+    return lambda: GameWorldClient(game_id=gw_id, timing_ms=timing_ms,
+                                   headless=headless)
+
+
+def cmd_onboard(game: str, out_dir="profiles", headless: bool = True) -> None:
+    factory = _client_factory(game, timing_ms=120, headless=headless)
+    profile = onboard_game(game, factory, out_dir=out_dir)
+    print(f"onboarded {game} -> {out_dir}/{game}.json")
+    print(f"  controls : {profile.controls}")
+    print(f"  metrics  : {profile.metrics} (primary={profile.primary_metric})")
+    print(f"  objective: {profile.objective}")
+
+
 def main() -> None:
     _load_dotenv()
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "onboard":
+        ap = argparse.ArgumentParser(prog="ludus onboard")
+        ap.add_argument("command")            # consumes the literal "onboard"
+        ap.add_argument("game", help="adapter name, raw GameWorld id, or synthetic:<name>")
+        ap.add_argument("--out", default="profiles")
+        ap.add_argument("--headed", action="store_true")
+        args = ap.parse_args()
+        cmd_onboard(args.game, out_dir=args.out, headless=not args.headed)
+        return
+
     ap = argparse.ArgumentParser()
     ap.add_argument("game")
     ap.add_argument("mode", choices=["baseline", "memory"])
@@ -44,10 +82,16 @@ def main() -> None:
     ap.add_argument("--provider", default="mock", choices=["mock", "gateway", "anthropic", "nebius", "fireworks", "fallback"])
     ap.add_argument("--fake", action="store_true", help="use FakeGameWorld (no browser)")
     ap.add_argument("--headed", action="store_true", help="show the browser window (great for demos)")
+    ap.add_argument("--profile", type=Path, default=None,
+                    help="play via a generated GameProfile instead of configs/<game>.yaml")
     args = ap.parse_args()
 
-    cfg = load_game_config(Path("configs") / f"{args.game}.yaml")
-    adapter = ADAPTERS[args.game](cfg)
+    if args.profile:
+        cfg = GameProfile.load(args.profile).to_game_config()
+        adapter = GenericAdapter(cfg)
+    else:
+        cfg = load_game_config(Path("configs") / f"{args.game}.yaml")
+        adapter = ADAPTERS[args.game](cfg)
     provider = build_provider(args.provider)
     gw = FakeGameWorld([{cfg.primary_metric: 0.0}]) if args.fake else GameWorldClient(
         game_id=GAMEWORLD_IDS.get(cfg.name, cfg.name), timing_ms=cfg.timing_ms,

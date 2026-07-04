@@ -101,8 +101,31 @@ python -m ludus.cli onboard <game> [--out profiles] [--headed]
 - Probes candidate keys (`ludus/onboarding/prober.py`), diffs `raw_state()` around each press,
   filters ambient drift + tick counters, names controls heuristically, picks metrics
   (`ludus/onboarding/metrics.py`), and writes `profiles/<game>.json` (`GameProfile`).
-- Known M2 gap: continuously-moving games (snake, flappy-bird) get motion-scrambled semantic
-  names — the ambient baseline samples instant pairs while presses span ~200ms.
+- The ambient baseline samples over press-sized windows (M2 fix), so continuous world motion
+  (snake, flappy-bird) lands in `ambient_paths` instead of being attributed to keys. Flaky
+  `apply()` calls are skipped and counted (`ProbeReport.apply_errors`), never fatal.
+
+### World-model induction (Magus-1 M2)
+
+```bash
+python -m ludus.cli explore <game> [--episodes 5 --steps 40 --seed 7]   # -> data/<game>/transitions.jsonl
+python -m ludus.cli induce <game> [--iterations 4]                      # -> worldmodels/<game>/model.py + report.json
+```
+
+- `explore`: uniform-random self-play over the profile's controls, one `Transition`
+  (before/action/after raw states) per press (`ludus/worldmodel/explore.py`). `data/` is
+  gitignored.
+- `induce`: an LLM (`ludus/worldmodel/llm.py` — anthropic default, gateway fallback, set
+  `LUDUS_SYNTH_BACKEND`/`LUDUS_SYNTH_MODEL`) writes `predict(state, action) -> next_state` as
+  pure Python; candidates pass an AST allowlist gate and run in a subprocess sandbox
+  (`sandbox.py`); a field-weighted validator (`validate.py`, tick/wall-clock paths excluded,
+  primary-metric + player paths weigh 3x) gates INDUCED on BOTH train and holdout; train
+  counterexamples drive up to `--iterations` repair rounds. Artifacts always saved, FAILED
+  verdicts included (`worldmodels/<game>/report.json` has per-field accuracies).
+- Live status: `synthetic:grid` INDUCED (1.000 holdout); `29_tetris` FAILED honestly at 0.800
+  (piece y-positions are wall-clock-dependent — gravity during the press window). Known M3
+  carry-forward: mechanics rarer than (1−threshold) in the data can pass the gate wrong
+  (grid's goal mechanic, 4 events in 100 train cases).
 
 ---
 

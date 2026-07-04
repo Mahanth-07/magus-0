@@ -87,6 +87,22 @@ python -m ludus.cli <game> <mode> [--steps N] [--provider mock|gateway|anthropic
 - `mode`: `baseline` (no rules) | `memory` (rules fed into prompt).
 - `--fake`: uses offline `FakeGameWorld` — no browser, no network.
 - `--provider nebius`: routes to `NebiusProvider`. Set `NEBIUS_MODEL` + `NEBIUS_API_KEY`. Set `NEBIUS_MULTIMODAL=0` for the text-only LoRA student.
+- `--profile profiles/<game>.json`: play via a machine-generated `GameProfile` (GenericAdapter)
+  instead of `configs/<game>.yaml` — works for ANY GameWorld catalog id, no per-game code.
+
+### Auto-onboarding (Magus-1 M1)
+
+```bash
+python -m ludus.cli onboard <game> [--out profiles] [--headed]
+```
+
+- `<game>`: adapter name (`tetris`), raw catalog id (`05_breakout`), or `synthetic:grid` /
+  `synthetic:counter` (offline, used by tests).
+- Probes candidate keys (`ludus/onboarding/prober.py`), diffs `raw_state()` around each press,
+  filters ambient drift + tick counters, names controls heuristically, picks metrics
+  (`ludus/onboarding/metrics.py`), and writes `profiles/<game>.json` (`GameProfile`).
+- Known M2 gap: continuously-moving games (snake, flappy-bird) get motion-scrambled semantic
+  names — the ambient baseline samples instant pairs while presses span ~200ms.
 
 ---
 

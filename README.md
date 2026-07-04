@@ -183,6 +183,13 @@ A/B eval: student 1022 vs gemini-2.5-flash 466 (live, 15 steps) ✅
 3. **Multi-game distillation** — build teachers for Wolf3D and Fireboy & Watergirl; collect multi-game SFT data; fine-tune a shared student.
 4. **RL to surpass the teacher** — the cheapest path is improving the *ranking function* itself (tune Dellacherie weights via CMA-ES against the `tetris_sim` simulator, or a small value network on simulated rollouts); the whole pipeline inherits the improvement since the teacher is the label source. Full policy-gradient RL would also train against the simulator, warm-started from the student.
 5. **Model-based reflection** — replace the blunt metric-based `Reflector` with a model-authored situational rule, sharper than "action X did not improve score."
+6. **Magus-1 (in progress)** — see `docs/specs/2026-07-04-magus-1-induced-world-models-design.md`.
+   **M1 auto-onboarding: ✅** `python -m ludus.cli onboard <game>` probes any GameWorld game
+   (presses candidate keys, diffs `getState()`, filters ambient drift) and generates a playable
+   `GameProfile` — controls, metrics, objective — with zero hand-written config. First live sweep:
+   5/5 games produced playable profiles (tetris + breakout with clean movement semantics; snake +
+   flappy-bird exposed a known M2 fix: press-window motion attribution in continuous games). Play
+   any profile with `--profile profiles/<game>.json`.
 
 ---
 

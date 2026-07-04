@@ -22,6 +22,8 @@ def test_onboard_gridworld_produces_complete_profile(tmp_path):
     assert profile.higher_is_better is True
     assert "score" in profile.objective
     assert "move_left (ArrowLeft)" in profile.objective
+    assert "maximizing" in profile.objective
+    assert "maximizeing" not in profile.objective
     # cached to disk
     assert GameProfile.load(tmp_path / "gridworld.json") == profile
 

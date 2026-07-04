@@ -18,13 +18,14 @@ DEFAULT_TIMING_MS = 120
 
 def build_objective(game_id: str, primary_metric: str, higher_is_better: bool,
                     controls: dict[str, str]) -> str:
-    goal = "Maximize" if higher_is_better else "Minimize"
+    goal, gerund = (("Maximize", "maximizing") if higher_is_better
+                    else ("Minimize", "minimizing"))
     control_list = ", ".join(f"{sem} ({key})" for sem, key in controls.items())
     return (
         f"You are playing {game_id}. {goal} {primary_metric}. "
         f"Available controls: {control_list}. "
         f"Each turn, return an \"actions\" sequence of 1-5 of these controls "
-        f"that makes progress toward {goal.lower()}ing {primary_metric}."
+        f"that makes progress toward {gerund} {primary_metric}."
     )
 
 

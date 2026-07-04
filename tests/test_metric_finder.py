@@ -47,3 +47,12 @@ def test_health_like_metrics_never_primary_when_alternative_exists():
     schema = {"metrics.health": "int", "metrics.score": "int"}
     result = find_metrics(schema, control_effects={})
     assert result.primary_metric == "score"
+
+
+def test_gameworlds_curated_primary_score_beats_other_score_fields():
+    # best_score is a high-water mark (delta ~always 0); GameWorld curates
+    # primary_score as THE score — it must win.
+    schema = {"metrics.best_score": "int", "metrics.primary_score": "float",
+              "metrics.attempts": "int"}
+    result = find_metrics(schema, control_effects={})
+    assert result.primary_metric == "primary_score"

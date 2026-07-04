@@ -15,8 +15,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-_NAME_PRIORS = ["score", "kills", "points", "coins", "diamonds", "gems",
-                "progress", "level"]
+_NAME_PRIORS = ["primary_score", "score", "kills", "points", "coins", "diamonds",
+                "gems", "progress", "level"]
 _VITALS = ("health", "lives", "ammo", "time", "steps")
 
 _NUMERIC_TYPES = {"int", "float"}

@@ -143,8 +143,8 @@ class ControlProber:
         axis with a consistent sign. Screen convention: y grows DOWNWARD."""
         for axis, neg, pos in (("x", "move_left", "move_right"),
                                ("y", "move_up", "move_down")):
-            paths = [p for p in effects
-                     if "player" in p and p.endswith(f".{axis}")]
+            paths = sorted(p for p in effects
+                           if "player" in p and p.endswith(f".{axis}"))
             for p in paths:
                 nums = [d for d in effects[p] if isinstance(d, (int, float))]
                 if nums and all(d < 0 for d in nums):

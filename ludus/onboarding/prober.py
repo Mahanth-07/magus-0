@@ -21,10 +21,14 @@ GameWorldClient and the synthetic games alike.
 
 from __future__ import annotations
 
+import logging
 import math
+import time
 from dataclasses import dataclass, field
 
 from ludus.onboarding.diff import diff_states, flatten_state
+
+log = logging.getLogger("ludus.onboarding")
 
 # GameWorld games draw from a small key vocabulary (docs/DISCOVERY.md + the
 # three hand-written configs). Order matters: earlier keys claim semantic
@@ -45,6 +49,7 @@ class ProbeReport:
     state_schema: dict[str, str] = field(default_factory=dict)     # path -> type name
     ambient_paths: list[str] = field(default_factory=list)
     relaunches: int = 0
+    apply_errors: int = 0
 
 
 def _status(state: dict) -> str:
@@ -101,12 +106,19 @@ class ControlProber:
         return self._factory()
 
     def _ambient_baseline(self, client, report: ProbeReport):
-        """Paths that change with NO input across `repeats` snapshot pairs."""
+        """Paths that change with NO input across `repeats` PRESS-SIZED windows.
+
+        The window sleeps as long as a real key press occupies (duration_ms +
+        the client's post-press settle), so drift from continuously-moving
+        games (snake, flappy) is captured as ambient instead of being
+        misattributed to whichever key happens to be pressed (M1 finding)."""
+        window_s = (self._duration_ms + 100) / 1000.0
         ambient: set[str] = set()
         for _ in range(self._repeats):
             if _status(client.raw_state()) != "playing":
                 client = self._relaunch(client, report)
             before = flatten_state(client.raw_state())
+            time.sleep(window_s)
             after = flatten_state(client.raw_state())
             ambient |= set(diff_states(before, after))
         return client, ambient
@@ -120,7 +132,12 @@ class ControlProber:
             if _status(client.raw_state()) != "playing":
                 client = self._relaunch(client, report)
             before = flatten_state(client.raw_state())
-            client.apply({"key": key, "duration_ms": self._duration_ms})
+            try:
+                client.apply({"key": key, "duration_ms": self._duration_ms})
+            except Exception as exc:
+                report.apply_errors += 1
+                log.warning("apply(%r) failed (%s); skipping press", key, exc)
+                continue
             after = flatten_state(client.raw_state())
             for path, (b, a) in diff_states(before, after).items():
                 if path in ambient or _is_tick(path) or path == "status":

@@ -88,6 +88,35 @@ class GridWorldGame(_SyntheticBase):
         }
 
 
+class AutoRunnerGame(_SyntheticBase):
+    """Continuous-motion regression game: player.x advances with WALL-CLOCK
+    time (like snake/flappy), independent of input. 'x' bumps score; all other
+    keys are no-ops. Used to pin the press-window ambient-sampling fix — an
+    instant-snapshot ambient baseline misses the drift and misattributes it
+    to whatever key was pressed."""
+
+    def __init__(self, drift_hz: int = 50) -> None:
+        import time as _time
+        self._time = _time
+        self._t0 = _time.monotonic()
+        self._drift_hz = drift_hz
+        self.score = 0
+        self.steps = 0
+
+    def apply(self, command: dict) -> None:
+        self.steps += 1
+        if command.get("key") == "x":
+            self.score += 1
+
+    def raw_state(self) -> dict:
+        x = int((self._time.monotonic() - self._t0) * self._drift_hz)
+        return {
+            "status": "playing",
+            "metrics": {"score": self.score, "steps": self.steps},
+            "game_state": {"player": {"x": x, "y": 0}},
+        }
+
+
 class CounterGame(_SyntheticBase):
     """'x' increments score. 'z' costs 10 health (floor 0 = terminal).
     Arrows do nothing. Every apply() ticks `steps`."""

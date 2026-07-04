@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 from pathlib import Path
 from ludus.config import load_game_config
 from ludus.adapters.tetris import TetrisAdapter
@@ -63,15 +64,13 @@ def cmd_onboard(game: str, out_dir="profiles", headless: bool = True) -> None:
 
 def main() -> None:
     _load_dotenv()
-    import sys
 
     if len(sys.argv) > 1 and sys.argv[1] == "onboard":
         ap = argparse.ArgumentParser(prog="ludus onboard")
-        ap.add_argument("command")            # consumes the literal "onboard"
         ap.add_argument("game", help="adapter name, raw GameWorld id, or synthetic:<name>")
         ap.add_argument("--out", default="profiles")
         ap.add_argument("--headed", action="store_true")
-        args = ap.parse_args()
+        args = ap.parse_args(sys.argv[2:])
         cmd_onboard(args.game, out_dir=args.out, headless=not args.headed)
         return
 
@@ -87,7 +86,11 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.profile:
-        cfg = GameProfile.load(args.profile).to_game_config()
+        profile = GameProfile.load(args.profile)
+        if profile.game_id != args.game:
+            print(f"WARNING: --profile game_id {profile.game_id!r} != positional game "
+                  f"{args.game!r}; playing {profile.game_id!r}, logging as {args.game!r}")
+        cfg = profile.to_game_config()
         adapter = GenericAdapter(cfg)
     else:
         cfg = load_game_config(Path("configs") / f"{args.game}.yaml")

@@ -46,3 +46,19 @@ def test_diff_reports_changed_added_removed():
 def test_diff_identical_states_is_empty():
     s = flatten_state({"a": {"b": 1}})
     assert diff_states(s, s) == {}
+
+
+def test_diff_detects_removal_of_none_valued_field():
+    # a stored None is a real value (e.g. Tetris held=null); losing the key
+    # entirely must still be reported, not confused with "no change"
+    before = flatten_state({"held": None})
+    after = flatten_state({})
+    assert "held" in diff_states(before, after)
+
+
+def test_flatten_list_boundary_at_max_indexed():
+    from ludus.onboarding.diff import MAX_INDEXED_LIST
+    exactly = {"xs": list(range(MAX_INDEXED_LIST))}
+    over = {"xs": list(range(MAX_INDEXED_LIST + 1))}
+    assert f"xs[{MAX_INDEXED_LIST - 1}]" in flatten_state(exactly)
+    assert flatten_state(over) == {"xs.__len__": MAX_INDEXED_LIST + 1}

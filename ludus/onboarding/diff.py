@@ -12,9 +12,11 @@ from __future__ import annotations
 MAX_INDEXED_LIST = 16
 
 _SCALARS = (str, int, float, bool)
+_MISSING = object()
 
 
 def flatten_state(value, prefix: str = "") -> dict:
+    """Recursively flatten `value` to {dot.path: scalar}."""
     flat: dict = {}
     if isinstance(value, dict):
         for k, v in value.items():
@@ -38,7 +40,9 @@ def diff_states(before: dict, after: dict) -> dict:
     Missing-side values are None."""
     out: dict = {}
     for path in before.keys() | after.keys():
-        b, a = before.get(path), after.get(path)
-        if b != a:
-            out[path] = (b, a)
+        b = before.get(path, _MISSING)
+        a = after.get(path, _MISSING)
+        if b is _MISSING or a is _MISSING or b != a:
+            out[path] = (None if b is _MISSING else b,
+                         None if a is _MISSING else a)
     return out

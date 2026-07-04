@@ -52,7 +52,7 @@ In parallel, a **π0-style distillation loop** uses a classical expert teacher t
 - **Action sequences.** `Decision.actions` carries an ordered macro (e.g. `["left","left","rotate","drop"]`) applied atomically per turn. The loop pauses game gravity during inference and the action sequence, so a piece isn't locked mid-positioning.
 - **Pydantic contracts everywhere.** `Decision`, `PlannerContext`, `StepRecord`, `EpisodeResult` — all typed, all validated.
 - **Dual-write persistence.** Local store is always required; InsForge write is best-effort. A failed InsForge write logs a warning but never aborts the run.
-- **Proven offline.** The entire loop is verified offline: 92 tests, `MockProvider` + `FakeGameWorld`, zero network.
+- **Proven offline.** The entire loop is verified offline: 128 tests, `MockProvider` + `FakeGameWorld`, zero network.
 
 ---
 
@@ -91,6 +91,16 @@ Switching the model to `google/gemini-2.5-flash` via the InsForge gateway, addin
 
 The jump from 66 to ~238 comes from three compounding improvements: a stronger reasoning model, arithmetic placement via board state, and atomic multi-move positioning that avoids pieces locking at spawn.
 
+### With candidate-placement lookahead: gemini-2.5-flash
+
+A VLM can't simulate piece interlock from a board summary, so we stopped asking it to: `rank_placements` (in the teacher module) enumerates every legal rotation × column hard-drop in code, scores each resulting board with the full Dellacherie evaluation, and injects the ranked top-6 — with the exact open-loop action macro that reaches each — into the prompt. The model's job collapses to "copy candidate [0] verbatim."
+
+| Game | Result |
+|---|---|
+| Tetris | **score 466** in 15 steps (vs ~238 free-form, vs 66 zero-shot) |
+
+The macros are rotation-shift-compensated (`_macro_live` replicates the game's own rotation geometry), so a blind open-loop apply lands the piece in the intended column.
+
 ### Expert teacher: Dellacherie heuristic
 
 The `ludus/teacher/tetris_heuristic.py` heuristic (Tetris only) enumerates all rotation × column placements, simulates the drop, scores by holes/height/bumpiness/lines, and picks the best. It exists as a label source, not the product.
@@ -99,11 +109,19 @@ The `ludus/teacher/tetris_heuristic.py` heuristic (Tetris only) enumerates all r
 |---|---|
 | Teacher self-play | **~27,000–100,000+**, ~0 holes |
 
-### Distillation student: LoRA fine-tuned Llama-3.2-3B-Instruct
+### Distillation student: LoRA fine-tuned Llama-3.2-3B-Instruct — BEATS THE GATEWAY
 
-~510 expert self-play examples collected via `scripts/collect_dataset.py`, exported to text SFT format (`scripts/export_nebius.py`), and LoRA fine-tuned on Nebius AI Studio (`scripts/finetune_nebius.py`). The fine-tune succeeded. **A/B evaluation (student vs gemini-flash vs teacher) is in progress — numbers pending.**
+2,000 simulated teacher self-play examples (`scripts/collect_dataset_sim.py` — no browser, seconds not hours), exported to text SFT format (`scripts/export_nebius.py`), LoRA fine-tuned on Nebius AI Studio (`scripts/finetune_nebius.py`, val_loss 9.3e-06), and served **locally** via ollama (Nebius trains LoRA but cannot serve it — see gotchas).
 
-**Imitation ceiling:** the student learns to imitate the teacher; its ceiling is the teacher's performance (~27k+). Beating the teacher requires RL/self-play with the game's verifiable score signal — a future direction.
+| Provider | Live Tetris, 15 steps | Offline val (held-out) |
+|---|---|---|
+| **Student** (Llama-3.2-3B LoRA, local, free) | **1022** | 50/50 exact macro matches |
+| gemini-2.5-flash via gateway | 466 | — |
+| zero-shot gpt-4o-mini baseline | 66 | — |
+
+The student — a 3B model running on a laptop, no frontier model, no network — copies candidate [0] more faithfully than gemini-flash over the gateway: 100% legal actions, zero omitted rotates, four line clears in 15 steps including a +322 multi-line. This is the distillation thesis demonstrated end-to-end.
+
+**Imitation ceiling:** the student learns to copy the teacher's choice; its per-step decision quality now matches the teacher, so the remaining gap to teacher self-play totals (~27k+) is episode length, not decision quality. Beating the teacher requires RL/self-play with the game's verifiable score signal — a future direction.
 
 ### Honest read on the baseline experiment
 
@@ -124,30 +142,35 @@ What the experiment *does* prove: the loop runs end-to-end on real games via rea
 The goal is a general AND skilled agent: generality from one shared planner across games; skill from a distillation loop that uses expert demonstrations as training signal.
 
 ```
-Expert teacher (tetris_heuristic) ──► self-play
+Expert teacher (tetris_heuristic) ──► SIMULATED self-play (tetris_sim, no browser)
         │
         ▼
-Dataset collection (scripts/collect_dataset.py)
-  pairs: screenshot + state_text + objective + legal_actions ──► teacher Decision (action macro)
+Dataset collection (scripts/collect_dataset_sim.py) — 2000 examples in seconds
+  prompt: rendered by the SAME live state-text function (candidate block included)
+  label : candidate [0] (Dellacherie-best) with _macro_live-corrected macro
+  + DAgger-style recovery states: epsilon-random placement APPLIED from the
+    displayed top-6 menu, label stays the teacher's best (student learns to
+    act well from messy boards, not just the teacher's near-perfect line)
         │
         ▼
-Export to SFT format (scripts/export_nebius.py)
+Export to SFT format (scripts/export_nebius.py --mode text --in examples_sim.jsonl)
   text mode: board reaches student via state_text, no image (Llama-3.2-3B-Instruct)
-  vision mode: full multimodal (screenshot + text)
         │
         ▼
 LoRA fine-tune on Nebius AI Studio (scripts/finetune_nebius.py)
-  model: meta-llama/Llama-3.2-3B-Instruct
-  dataset: ~510 expert placements
-  status: SUCCEEDED
+  model: meta-llama/Llama-3.2-3B-Instruct — 9 min, val_loss 9.3e-06
         │
         ▼
-Serve the adapter (NebiusProvider, --provider nebius, NEBIUS_MODEL=<ft-model-id>)
-  text-only student: NEBIUS_MULTIMODAL=0
+Serve LOCALLY (Nebius cannot serve LoRA — its support list is empty):
+  download adapter -> convert_lora_to_gguf.py -> ollama create (Modelfile ADAPTER)
+  NebiusProvider unchanged: NEBIUS_BASE_URL=http://localhost:11434/v1
         │
         ▼
-A/B eval: student vs gemini-2.5-flash vs teacher   ← IN PROGRESS
+A/B eval: student 1022 vs gemini-2.5-flash 466 (live, 15 steps) ✅
+          + 50/50 exact macro matches on held-out validation
 ```
+
+**Why the dataset was regenerated (v2):** the original ~510 live-collected examples had two fatal flaws — (1) macros from `_macro`, which assumes rotation preserves the leftmost column (the live collector re-read the board after each rotate, but the runtime loop applies macros *blind*, so a perfectly-imitating student would land rotated pieces in the wrong column), and (2) prompts predating the candidate-lookahead format. The sim collector fixes both by construction and adds recovery states.
 
 **Generality note:** the Dellacherie teacher is Tetris-specific. The path to a general-purpose skilled agent (true π0-style) is multi-game distillation using a strong frontier VLM as a universal teacher across many games — the roadmap, not yet built.
 
@@ -155,10 +178,10 @@ A/B eval: student vs gemini-2.5-flash vs teacher   ← IN PROGRESS
 
 ## Roadmap
 
-1. **Deploy student + A/B** — serve the LoRA adapter via `NebiusProvider`, run A/B (student vs gemini-flash vs teacher) on Tetris, report numbers.
+1. ~~**Deploy student + A/B**~~ ✅ **Done** — student served locally via ollama, live A/B: student 1022 vs gemini-flash 466 (15 steps), 50/50 offline val.
 2. **Cross-episode rule persistence** — persist the rulebook across runs so reflection compounds over time.
 3. **Multi-game distillation** — build teachers for Wolf3D and Fireboy & Watergirl; collect multi-game SFT data; fine-tune a shared student.
-4. **RL to surpass the teacher** — use the game's verifiable score signal (PPO or similar) to push past the imitation ceiling.
+4. **RL to surpass the teacher** — the cheapest path is improving the *ranking function* itself (tune Dellacherie weights via CMA-ES against the `tetris_sim` simulator, or a small value network on simulated rollouts); the whole pipeline inherits the improvement since the teacher is the label source. Full policy-gradient RL would also train against the simulator, warm-started from the student.
 5. **Model-based reflection** — replace the blunt metric-based `Reflector` with a model-authored situational rule, sharper than "action X did not improve score."
 
 ---
@@ -189,7 +212,7 @@ Offline (tests + `--fake`) needs only step 1. Live runs need all three + a `.env
 
 ```bash
 source .venv/bin/activate
-pytest -v --ignore=infra                              # 92 tests, all offline
+pytest -v --ignore=infra                              # 128 tests, all offline
 python -m ludus.cli tetris baseline --provider mock --fake --steps 5   # fake run, no browser
 ```
 
@@ -205,11 +228,13 @@ INSFORGE_VISION_MODEL=google/gemini-2.5-flash                   # recommended; a
 INSFORGE_S3_BUCKET=<your-bucket>                                # created in the InsForge dashboard
 ANTHROPIC_API_KEY=sk-ant-...                                    # optional fallback provider
 
-# Distillation student (optional):
-NEBIUS_API_KEY=...
-NEBIUS_BASE_URL=https://api.studio.nebius.com/v1
-NEBIUS_MODEL=<fine-tuned-model-id>                              # from finetune_nebius.py output
-NEBIUS_MULTIMODAL=0                                             # set to 0 for the text-only LoRA student
+# Distillation student (optional). NEBIUS_API_KEY is used for TRAINING only;
+# serving is local (Nebius cannot serve LoRA adapters). At run time point the
+# provider at the local ollama server instead:
+NEBIUS_API_KEY=...                                              # training (finetune_nebius.py)
+NEBIUS_BASE_URL=http://localhost:11434/v1                       # local ollama (OpenAI-compatible)
+NEBIUS_MODEL=magus-tetris-student                               # ollama model with the LoRA adapter
+NEBIUS_MULTIMODAL=0                                             # text-only LoRA student
 ```
 
 Then create the InsForge tables once, and run (from the activated `.venv`):
@@ -230,21 +255,43 @@ python -m ludus.cli tetris baseline --provider nebius --steps 12  # student (aft
 source .venv/bin/activate && bash scripts/experiment.sh          # needs GameWorld + live creds
 ```
 
-### Expert teacher (Tetris only)
+### Distillation pipeline (Tetris)
 
 ```bash
-# Watch the heuristic play live (calibrates + verifies rotation tables end-to-end):
-source .venv/bin/activate && python scripts/teacher_play.py
+source .venv/bin/activate
 
-# Collect a distillation dataset (~510 examples used for the LoRA fine-tune):
-python scripts/collect_dataset.py 500
+# 1. Collect simulated teacher self-play — no browser, ~3 seconds for 2000 examples.
+#    --epsilon injects DAgger-style recovery states (suboptimal placement applied,
+#    teacher's best move kept as the label).
+python scripts/collect_dataset_sim.py 2000 --epsilon 0.15 --seed 7
 
-# Export to Nebius SFT format (text-only mode for Llama-3.2-3B-Instruct):
-python scripts/export_nebius.py --mode text
+# 2. Export to text SFT format (train/val split):
+python scripts/export_nebius.py --mode text --in data/tetris/examples_sim.jsonl
 
-# Launch a LoRA fine-tune on Nebius AI Studio:
+# 3. LoRA fine-tune on Nebius AI Studio (~10 min; fails loudly if no servable id):
 python scripts/finetune_nebius.py
+
+# 4. Serve LOCALLY — Nebius trains LoRA but cannot serve it. Download the final
+#    checkpoint's files (GET /v1/files/{id}/content, follow redirects) into
+#    data/tetris/lora_student/ckpt-NN/, then:
+python /path/to/llama.cpp/convert_lora_to_gguf.py \
+  --base <dir-with-base-config.json> --outtype f16 \
+  --outfile data/tetris/lora_student/tetris-student-lora.gguf \
+  data/tetris/lora_student/ckpt-NN
+ollama pull llama3.2:3b-instruct-q8_0
+ollama create magus-tetris-student -f data/tetris/lora_student/Modelfile
+#    (Modelfile: FROM llama3.2:3b-instruct-q8_0 / ADAPTER <abs path to .gguf>
+#     / PARAMETER temperature 0 / PARAMETER num_ctx 8192)
+
+# 5. Run the student live (NebiusProvider pointed at the local server):
+NEBIUS_BASE_URL=http://localhost:11434/v1 NEBIUS_API_KEY=local-ollama \
+NEBIUS_MODEL=magus-tetris-student NEBIUS_MULTIMODAL=0 \
+python -m ludus.cli tetris baseline --provider nebius --steps 15
 ```
+
+Legacy live-browser collection (`scripts/collect_dataset.py`, screenshots included for a
+future vision student) and the live teacher demo (`scripts/teacher_play.py`) still work
+but need GameWorld + Playwright in the env.
 
 ### Dashboard
 
@@ -270,16 +317,23 @@ ludus/
   reflection.py     Reflector (metric-based)
   rulebook.py       Rulebook
   teacher/
-    tetris_heuristic.py   Dellacherie-style placement heuristic (label source for distillation)
+    tetris_heuristic.py   Dellacherie-style placement heuristic + rank_placements
+                          (candidate lookahead: every rotation x column pre-simulated,
+                          _macro_live rotation-shift-compensated open-loop macros)
+    tetris_sim.py         simulated self-play collector (no browser) — live-format
+                          prompts, candidate-[0] labels, DAgger recovery states
   cli.py            entrypoint: python -m ludus.cli <game> <mode> [options]
 server/app.py       minimal FastAPI dashboard (read-only from runs/)
 scripts/
-  experiment.sh         baseline vs memory loop across tetris + wolf3d
-  teacher_play.py       drive the live teacher heuristic (calibration + demo)
-  collect_dataset.py    collect expert self-play examples → data/tetris/examples.jsonl
-  export_nebius.py      export examples to Nebius/OpenAI SFT format (vision or text mode)
-  finetune_nebius.py    launch LoRA fine-tune on Nebius AI Studio; poll to completion
-data/tetris/        distillation dataset (gitignored): images/ + examples.jsonl + nebius SFT files
+  experiment.sh           baseline vs memory loop across tetris + wolf3d
+  teacher_play.py         drive the live teacher heuristic (calibration + demo)
+  collect_dataset.py      LIVE browser collection (legacy; screenshots for vision student)
+  collect_dataset_sim.py  SIMULATED collection → data/tetris/examples_sim.jsonl (preferred)
+  export_nebius.py        export examples to Nebius/OpenAI SFT format (vision or text mode)
+  finetune_nebius.py      launch LoRA fine-tune on Nebius AI Studio; poll to completion;
+                          fails loudly if the job yields no servable model id
+data/tetris/        distillation dataset (gitignored): examples_sim.jsonl + nebius SFT files
+                    + lora_student/ (downloaded adapter, GGUF, ollama Modelfile)
 runs/               local persistence output (gitignored)
-tests/              92 offline unit tests
+tests/              128 offline unit tests
 ```

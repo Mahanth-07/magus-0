@@ -2,7 +2,7 @@
 
 Magus-0 is a game-agnostic AI agent that plays GameWorld browser games via **semantic macro-actions**. One shared planner drives multiple games; it predicts outcomes, reflects on prediction error, and accumulates a compact **rulebook**. Board state is also sent as text alongside screenshots so placement is arithmetic, not pixel-guessing. Persistence is dual-write: local JSONL/PNG fallback + InsForge (Postgres traces + S3 screenshots).
 
-In parallel, a **π0-style distillation loop** uses a classical expert teacher (Tetris-only Dellacherie heuristic) to generate training labels, fine-tunes a small text LLM (Llama-3.2-3B-Instruct) via LoRA on Nebius AI Studio, and targets a student that plays at near-teacher level without a frontier model at inference time. A/B evaluation is in progress.
+In parallel, a **π0-style distillation loop** uses a classical expert teacher (Tetris-only Dellacherie heuristic) to generate training labels, fine-tunes a small text LLM (Llama-3.2-3B-Instruct) via LoRA on Nebius AI Studio, and serves the student **locally via ollama** (Nebius cannot serve LoRA). **A/B result: student 1022 vs gemini-2.5-flash 466 on live 15-step Tetris; 50/50 exact macro matches on held-out validation.** The Tetris prompt includes a code-computed "Candidate placements" block (every rotation × column pre-simulated and Dellacherie-ranked); the model's job is to copy candidate [0] verbatim.
 
 **Default vision model:** `google/gemini-2.5-flash` via the InsForge gateway (set `INSFORGE_VISION_MODEL`). Anthropic and Mock remain as fallbacks.
 
@@ -62,7 +62,8 @@ screenshot + state_text ──► PlannerContext ──► ModelProvider.decide(
 - **`ludus/adapters/`** — thin per-game `GameAdapter` protocol impls: `tetris.py`, `wolf3d.py`, `fireboy_watergirl.py`. Supply legal actions, control map, metrics, timing — no strategy.
 - **`ludus/persistence/`** — `LocalStore` (JSONL steps + PNG), `InsForgeStore`, `DualWriteStore` (local required, InsForge best-effort).
 - **`ludus/outcome.py`**, **`ludus/reflection.py`**, **`ludus/rulebook.py`** — metric-based reflection pipeline.
-- **`ludus/teacher/tetris_heuristic.py`** — Dellacherie-style Tetris placement heuristic. Enumerates every (rotation, column), simulates the drop, scores by holes/height/bumpiness/lines/wells/transitions, returns the best action macro. Tetris-specific; used to generate training labels for distillation, not as the product.
+- **`ludus/teacher/tetris_heuristic.py`** — Dellacherie-style Tetris placement heuristic. Enumerates every (rotation, column), simulates the drop, scores by holes/height/bumpiness/lines/wells/transitions, returns the best action macro. Also exposes `rank_placements` (the candidate-lookahead tool: top-k placements sorted by the SAME Dellacherie score, so candidate [0] == `best_move`'s choice) and `_macro_live` (open-loop macros that compensate for the game's rotation-induced column shift — required because the runtime loop applies macros blind, without re-reading the board). Tetris-specific; used to generate training labels for distillation, not as the product.
+- **`ludus/teacher/tetris_sim.py`** — SIMULATED self-play collector (no browser, no I/O). Prompts rendered by the live client's `_tetris_state_text` over a synthetic getState()-shaped dict (exact runtime prompt distribution, candidate block + rolling live-format `recent_outcomes` included); labels = candidate [0]; DAgger-style recovery states via `epsilon` (suboptimal placement from the displayed top-6 APPLIED, teacher's best kept as label).
 - **`configs/`** — per-game YAML: objective, legal_actions, control_map, primary_metric, timing.
 - **`server/app.py`** — minimal FastAPI dashboard (read-only from `runs/`). Start: `.venv/bin/python -m uvicorn server.app:app --port 8137`.
 
@@ -92,7 +93,7 @@ python -m ludus.cli <game> <mode> [--steps N] [--provider mock|gateway|anthropic
 ## Running tests
 
 ```bash
-.venv/bin/pytest -v --ignore=infra   # 92 tests, all offline
+.venv/bin/pytest -v --ignore=infra   # 128 tests, all offline
 ```
 
 Tests cover schemas (including `actions` macro + `state_text`), mock provider, fallback provider, outcome detection, reflection, rulebook, local store, dual store, loop, config loader, and the tetris adapter.
@@ -106,26 +107,31 @@ Tests cover schemas (including `actions` macro + `state_text`), mock provider, f
 | Script | What it does |
 |---|---|
 | `scripts/teacher_play.py` | Drive the live Dellacherie teacher heuristic in the real game (calibration + demo). |
-| `scripts/collect_dataset.py` | Run teacher self-play and log one SFT example per placement → `data/tetris/examples.jsonl` + `data/tetris/images/`. |
-| `scripts/export_nebius.py` | Export `examples.jsonl` to Nebius/OpenAI SFT format. `--mode text` produces text-only train/val splits (for Llama-3.2-3B-Instruct). `--mode vision` embeds screenshots as data URIs. |
-| `scripts/finetune_nebius.py` | Upload SFT files, create a LoRA fine-tuning job on Nebius AI Studio, poll to completion. Prints the fine-tuned model id on success — set it as `NEBIUS_MODEL`. |
+| `scripts/collect_dataset_sim.py` | **Preferred.** Simulated teacher self-play (no browser) → `data/tetris/examples_sim.jsonl`. 2000 examples in ~3s. `--epsilon` controls DAgger recovery states. |
+| `scripts/collect_dataset.py` | LIVE browser collection (legacy; keeps screenshots for a future vision student) → `data/tetris/examples.jsonl` + `images/`. |
+| `scripts/export_nebius.py` | Export examples to Nebius/OpenAI SFT format. `--mode text --in data/tetris/examples_sim.jsonl` produces text-only train/val splits (for Llama-3.2-3B-Instruct). Threads `recent_outcomes` into the prompt. |
+| `scripts/finetune_nebius.py` | Upload SFT files, create a LoRA fine-tuning job on Nebius AI Studio, poll to completion. Fails LOUDLY if the succeeded job has no servable model id (Nebius returns `fine_tuned_model: null` + checkpoint files only — never put a `file-...` id in `NEBIUS_MODEL`). |
+
+### Serving the student (local — Nebius cannot serve LoRA)
+
+Nebius trains LoRA but its LoRA-inference support list is empty (`POST /v0/models` rejects all base models). Serve locally instead:
+
+1. Download the final checkpoint's files: `GET {NEBIUS_BASE_URL}/fine_tuning/jobs/{job}/checkpoints` for the checkpoint id, then `GET /files/{id}/content` (**follow redirects — `curl -L`**, plain curl yields 0-byte files) into `data/tetris/lora_student/ckpt-NN/`.
+2. Convert PEFT → GGUF: `python llama.cpp/convert_lora_to_gguf.py --base <dir with base config.json> --outtype f16 --outfile tetris-student-lora.gguf ckpt-NN/` (ollama's safetensors `ADAPTER` import rejects Nebius's PEFT layout; GGUF works).
+3. `ollama create magus-tetris-student -f data/tetris/lora_student/Modelfile` (FROM `llama3.2:3b-instruct-q8_0`, `ADAPTER` = absolute path to the .gguf, temperature 0, num_ctx 8192).
+4. Run: `NEBIUS_BASE_URL=http://localhost:11434/v1 NEBIUS_API_KEY=local-ollama NEBIUS_MODEL=magus-tetris-student NEBIUS_MULTIMODAL=0 python -m ludus.cli tetris baseline --provider nebius --steps 15` (`NebiusProvider` is OpenAI-compatible; no code changes).
 
 ### Data
 
-`data/tetris/` (gitignored): `images/ex_NNNNNN.png`, `examples.jsonl`, `nebius_text_sft.jsonl` (train), `nebius_text_val.jsonl` (val).
+`data/tetris/` (gitignored): `examples_sim.jsonl` (current dataset, 2000 rows), `examples.jsonl` (legacy live), `nebius_text_train.jsonl` / `nebius_text_val.jsonl` (SFT splits), `lora_student/` (adapter + GGUF + Modelfile).
 
-### Env vars for the student
+### Results
 
-```bash
-NEBIUS_API_KEY=...
-NEBIUS_BASE_URL=https://api.studio.nebius.com/v1   # default
-NEBIUS_MODEL=<fine-tuned-model-id>
-NEBIUS_MULTIMODAL=0   # 0 = text-only; omit or set 1 for multimodal
-```
+Student (local 3B LoRA): **1022** on live 15-step Tetris vs gemini-2.5-flash **466**; 50/50 exact macro matches on held-out val; 100% legal actions, zero omitted rotates. Fine-tune: 9 min on Nebius, val_loss 9.3e-06.
 
 ### Imitation ceiling
 
-The LoRA student is trained by imitation; its performance ceiling is the teacher's (~27k+ Tetris score). Beating the teacher requires RL with a verifiable game reward — not yet built.
+The student copies candidate [0], so its per-step decision quality equals the teacher's; the gap to teacher self-play totals (~27k+) is episode length. Beating the teacher means improving the ranking itself (tune Dellacherie weights against the simulator, or RL with the verifiable game reward) — not yet built.
 
 ---
 
@@ -155,7 +161,7 @@ Fireboy & Watergirl requires `?autostart=1` — handled internally.
 
 - `InsForgeGatewayProvider` — model gateway (primary, vision-capable). Default model: `google/gemini-2.5-flash` (set via `INSFORGE_VISION_MODEL`).
 - `AnthropicProvider` — fallback via Anthropic API.
-- `MockProvider` — deterministic, offline, returns a fixed `Decision`. Used by all 92 tests.
+- `MockProvider` — deterministic, offline, returns a fixed `Decision`. Used by all 128 tests.
 - `NebiusProvider` — Nebius AI Studio; text-only or multimodal depending on `NEBIUS_MULTIMODAL`.
 - `FallbackProvider` — ordered list; degrades on error and logs `WARNING: degrading to ...`.
 - `DualWriteStore` — writes local first (required); InsForge write is best-effort. Emits a warning on InsForge failure, never raises.
@@ -194,4 +200,8 @@ Loops tetris + wolf3d × baseline + memory, 12 steps each, with `--provider fall
 - Fireboy & Watergirl is co-op: the agent controls Watergirl; Fireboy keys are recorded via a partner-key recorder but not sent by the agent.
 - `FallbackProvider` logs a WARNING (not an error) when it degrades to mock — a misconfigured live run is clearly visible in logs.
 - Metric field names must exactly match what the GameWorld API returns. A mismatch emits a warning, not an error — silent wrong data if ignored.
-- The teacher scripts (`teacher_play.py`, `collect_dataset.py`) require GameWorld + Playwright in the active env.
+- The teacher scripts (`teacher_play.py`, `collect_dataset.py`) require GameWorld + Playwright in the active env. `collect_dataset_sim.py` does NOT (pure Python).
+- **Episode ids collide across runs:** `episode_id = f"{game}-{mode}"` (`cli.py`), so re-running appends to `runs/<id>/steps.jsonl` and OVERWRITES `episode.json`. Back up the dir first if the old result matters.
+- `_load_dotenv` never overrides already-set env vars — inline `NEBIUS_*=... python -m ludus.cli ...` wins over `.env` (this is how the local-ollama student is selected without editing `.env`).
+- **Nebius LoRA:** training works, serving does not (empty support list). Never set `NEBIUS_MODEL` to a `file-...` id. See "Serving the student" above for the local ollama path.
+- Nebius `GET /files/{id}/content` redirects to S3 — use `curl -L` or you get 0-byte files.

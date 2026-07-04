@@ -41,3 +41,5 @@ def test_to_game_config_bridges_to_existing_loop():
     assert cfg.primary_metric == "score"
     assert cfg.relevant_metrics == ["score", "steps"]
     assert cfg.timing_ms == 120
+    assert cfg.higher_is_better is True
+    assert cfg.objective == "Maximize score. Controls: move_left (ArrowLeft), move_right (ArrowRight)."

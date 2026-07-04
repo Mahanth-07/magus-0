@@ -45,5 +45,5 @@ class GameProfile(BaseModel):
         p.write_text(self.model_dump_json(indent=2) + "\n")
 
     @classmethod
-    def load(cls, path: Path | str) -> "GameProfile":
+    def load(cls, path: Path | str) -> GameProfile:
         return cls.model_validate_json(Path(path).read_text())

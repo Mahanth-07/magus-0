@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -98,10 +99,63 @@ def cmd_induce(game: str, profile_path=None, data_dir="data",
         print(f"  worst field: {path} = {acc:.2f}")
 
 
+def cmd_duel(game: str, profile_path=None, worldmodels_dir="worldmodels",
+             steps=15, baseline_provider=None, baseline_name="gateway",
+             runs_dir="runs", headless: bool = True) -> dict:
+    """Planner (induced model) vs a baseline provider: same game, same step
+    budget, fresh client per side. Prints an honest table, persists the result."""
+    from ludus.planning.provider import PlannerProvider
+
+    profile = GameProfile.load(profile_path or Path("profiles") / f"{game}.json")
+    adapter = GenericAdapter(profile.to_game_config())
+    planner = PlannerProvider(profile, worldmodels_dir=worldmodels_dir)
+    baseline = baseline_provider or build_provider(baseline_name)
+
+    sides = {}
+    for label, provider in (("planner", planner), ("baseline", baseline)):
+        gw = _client_factory(game, timing_ms=profile.timing_ms,
+                             headless=headless)()
+        try:
+            result = run_episode(
+                adapter=adapter, provider=provider, gameworld=gw,
+                store=LocalStore(root=runs_dir), rulebook=Rulebook(),
+                mode="baseline", max_steps=steps,
+                episode_id=f"duel-{game}-{label}")
+        finally:
+            if hasattr(gw, "close"):
+                gw.close()
+        sides[label] = {
+            "provider": getattr(provider, "name", label),
+            "score": result.final_metrics.get(profile.primary_metric, 0.0),
+            "legal_action_rate": result.legal_action_rate,
+            "steps": result.steps,
+        }
+
+    p, b = sides["planner"]["score"], sides["baseline"]["score"]
+    better = p > b if profile.higher_is_better else p < b
+    winner = "planner" if better else ("baseline" if p != b else "tie")
+    out = {"game": game, "steps": steps,
+           "primary_metric": profile.primary_metric,
+           "planner": sides["planner"], "baseline": sides["baseline"],
+           "winner": winner}
+
+    print(f"==== DUEL {game} ({steps} steps, metric={profile.primary_metric}) ====")
+    for label in ("planner", "baseline"):
+        s = sides[label]
+        print(f"  {label:9s} ({s['provider']:8s}): {profile.primary_metric}="
+              f"{s['score']:g}  legal_rate={s['legal_action_rate']:.2f}")
+    print(f"  winner: {winner}")
+
+    dest = Path(runs_dir) / f"duel-{game}.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(out, indent=2) + "\n")
+    return out
+
+
 def main() -> None:
     _load_dotenv()
 
-    if len(sys.argv) > 1 and sys.argv[1] in ("onboard", "explore", "induce"):
+    if len(sys.argv) > 1 and sys.argv[1] in ("onboard", "explore", "induce", "duel"):
         cmd = sys.argv[1]
         ap = argparse.ArgumentParser(prog=f"ludus {cmd}")
         ap.add_argument("game")
@@ -121,7 +175,7 @@ def main() -> None:
             cmd_explore(args.game, profile_path=args.profile, data_dir=args.data_dir,
                         episodes=args.episodes, steps=args.steps, seed=args.seed,
                         headless=not args.headed)
-        else:
+        elif cmd == "induce":
             ap.add_argument("--profile", type=Path, default=None)
             ap.add_argument("--data-dir", default="data")
             ap.add_argument("--out", default="worldmodels")
@@ -129,6 +183,16 @@ def main() -> None:
             args = ap.parse_args(sys.argv[2:])
             cmd_induce(args.game, profile_path=args.profile, data_dir=args.data_dir,
                        out_dir=args.out, max_iterations=args.iterations)
+        else:
+            ap.add_argument("--profile", type=Path, default=None)
+            ap.add_argument("--worldmodels", default="worldmodels")
+            ap.add_argument("--steps", type=int, default=15)
+            ap.add_argument("--baseline", default="gateway")
+            ap.add_argument("--headed", action="store_true")
+            args = ap.parse_args(sys.argv[2:])
+            cmd_duel(args.game, profile_path=args.profile,
+                     worldmodels_dir=args.worldmodels, steps=args.steps,
+                     baseline_name=args.baseline, headless=not args.headed)
         return
 
     ap = argparse.ArgumentParser()

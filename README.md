@@ -199,11 +199,22 @@ A/B eval: student 1022 vs gemini-2.5-flash 466 (live, 15 steps) ✅
    got prompt priority; two earlier runs with those events buried hallucinated the mechanic,
    the sharpest lesson of M2: *what the LLM doesn't see, it invents*. `29_tetris` **FAILED
    honestly at 0.800** with a measured boundary: piece y-positions are wall-clock-dependent
-   (gravity during the press window) — the partial-model limit the spec predicted. M3
+   (gravity during the press window) — the partial-model limit the spec predicted. M2
    carry-forwards: rare-event coverage bounds what's learnable (grid's goal-respawn cycle,
    4 observations, correctly copied through as unpredictable); threshold gates dilute
    mechanics rarer than (1−threshold); wall-clock dynamics need time-delta inputs or
    press-quantized stepping.
+   **M3 planner + duel: ✅ harness, honest partial on the milestone target.** `rank_macros`
+   does batched beam search over the sandboxed induced model (one subprocess per depth
+   level); `PlannerProvider` plays through the unmodified loop and **refuses non-INDUCED
+   models** (verified live on tetris); `duel <game>` runs planner vs zero-shot VLM on the
+   same budget. Live: planner won the grid duel 10–0 (caveat recorded: a vision baseline is
+   structurally blind on synthetic games — fake PNGs; the harness mechanics, not the
+   comparison, are the validated claim). The real-game target (01_2048, turn-based, ideal
+   on paper) FAILED induction at 0.741 with a precise diagnosis chain: entity-LIST state →
+   order-sensitive validation (fixed via canonical ordering) → residual failure from the
+   stochastic spawned tile shifting canonical indices. **M4 blocker, well-defined:**
+   entity-matching (set-based) validation for set-valued game state.
 
 ---
 

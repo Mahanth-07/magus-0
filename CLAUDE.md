@@ -125,10 +125,31 @@ python -m ludus.cli induce <game> [--iterations 4]                      # -> wor
 - Live status: `synthetic:grid` INDUCED (holdout 1.000 / train 0.993, +10 goal mechanic learned
   from 4 observed events once rare transitions got prompt priority); `29_tetris` FAILED honestly
   at 0.800 (piece y-positions are wall-clock-dependent — gravity during the press window).
-  M3 carry-forwards: rare-event coverage bounds learnability (grid's goal-respawn cycle: 4
+  M2 carry-forwards: rare-event coverage bounds learnability (grid's goal-respawn cycle: 4
   observations → correctly copied through as unpredictable); threshold gates dilute mechanics
   rarer than (1−threshold); wall-clock dynamics need time-delta inputs. Sharpest M2 lesson:
   what the LLM doesn't see in the prompt, it INVENTS — prompt sampling is load-bearing.
+
+### Planner + duel (Magus-1 M3)
+
+```bash
+python -m ludus.cli <game> <mode> --profile profiles/<game>.json --provider planner
+python -m ludus.cli duel <game> [--steps 15 --baseline gateway]
+```
+
+- `PlannerProvider` (`ludus/planning/provider.py`): beam search (`rank_macros`, batched — one
+  sandbox subprocess per depth level) over `worldmodels/<game>/model.py`; REFUSES models whose
+  report.json is not INDUCED. Needs `--profile`. Gets state via `PlannerContext.raw_state`
+  (threaded by the loop, hasattr-guarded).
+- `duel`: planner vs a baseline provider, same game/steps, fresh client per side; prints an
+  honest table with per-side information channel (`[raw_state]` vs `[screenshot]`) and
+  persists `runs/duel-<game>.json` (milestone copies live in `docs/results/`).
+- Live status: grid duel planner 10–0 (vision baselines are structurally blind on synthetic
+  games — fake PNGs — so only the harness mechanics are validated there); tetris duel refused
+  (FAILED model — the honesty gate working); 01_2048 induction FAILED 0.741 — canonical
+  entity ordering (`ludus/worldmodel/canonical.py`) fixed order-sensitivity, but the random
+  spawned tile still shifts canonical indices. M4 blocker: entity-matching (set-based)
+  validation for set-valued state.
 
 ---
 

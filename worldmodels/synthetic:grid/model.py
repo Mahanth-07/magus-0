@@ -1,33 +1,39 @@
 import copy
 
 def predict(state, action):
-    new_state = copy.deepcopy(state)
+    s = copy.deepcopy(state)
     
-    if new_state["status"] != "playing":
-        return new_state
+    player = s["game_state"]["player"]
+    goal = s["game_state"]["environment"]["goal"]
+    metrics = s["metrics"]
     
-    player = new_state["game_state"]["player"]
-    goal = new_state["game_state"]["environment"]["goal"]
-    
-    # Grid bounds: 0 to 4 (5x5 grid)
-    MIN_X, MAX_X = 0, 4
-    MIN_Y, MAX_Y = 0, 4
+    # Grid bounds: 0-4
+    GRID_MIN = 0
+    GRID_MAX = 4
     
     # Apply movement
-    if action == "move_up":
-        player["y"] = max(MIN_Y, player["y"] - 1)
-    elif action == "move_down":
-        player["y"] = min(MAX_Y, player["y"] + 1)
+    new_x = player["x"]
+    new_y = player["y"]
+    
+    if action == "move_right":
+        new_x = min(player["x"] + 1, GRID_MAX)
     elif action == "move_left":
-        player["x"] = max(MIN_X, player["x"] - 1)
-    elif action == "move_right":
-        player["x"] = min(MAX_X, player["x"] + 1)
+        new_x = max(player["x"] - 1, GRID_MIN)
+    elif action == "move_down":
+        new_y = min(player["y"] + 1, GRID_MAX)
+    elif action == "move_up":
+        new_y = max(player["y"] - 1, GRID_MIN)
+    
+    player["x"] = new_x
+    player["y"] = new_y
     
     # Increment steps
-    new_state["metrics"]["steps"] += 1
+    metrics["steps"] += 1
     
-    # Check if player reached the goal
+    # Check if player reached goal
     if player["x"] == goal["x"] and player["y"] == goal["y"]:
-        new_state["metrics"]["score"] += 1
+        metrics["score"] += 10
+        # Goal relocates to unpredictable position - copy through unchanged
+        # (the new goal position is random, we can't predict it)
     
-    return new_state
+    return s

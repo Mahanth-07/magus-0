@@ -27,9 +27,10 @@ simulator, and self-distills the resulting expert play into one local
 multi-game student.
 
 **Success criteria (user-set):**
-1. On games the system has never seen, after bounded autonomous interaction it
-   **beats a zero-shot frontier VLM** playing the same game with the same step
-   budget.
+1. On games the system has never seen, after bounded autonomous interaction
+   (default budget: ≤30 min wall clock and a per-game API-spend cap for
+   onboard + explore + induce) it **beats a zero-shot frontier VLM** playing
+   the same game with the same step budget.
 2. Horizon goal: competent, fully autonomous play — point at a game id, no
    human input.
 3. Signature demo: **Fireboy & Watergirl co-op** — the agent plays *with a
@@ -117,12 +118,18 @@ ludus/
     transitions.py  # TransitionStore: append/load (state, macro, state', deltas)
                     # JSONL per game; train/holdout split by episode.
     inducer.py      # Synthesis loop: prompt LLM with schema + sampled
-                    # transitions -> predict()/reward()/legal() source; on
-                    # validation failure, re-prompt with counterexamples. Budgeted.
+                    # transitions -> predict()/legal() source; on validation
+                    # failure, re-prompt with counterexamples. Budgeted.
+                    # reward() is NOT free-form: it is predict()'s output for the
+                    # prober-discovered primary_metric field (delta), so the
+                    # objective stays grounded in the game's own signal.
     sandbox.py      # Runs induced code in a subprocess: timeout, no filesystem/
                     # network, import allowlist (math, copy, itertools).
-    validate.py     # Field-weighted prediction accuracy on held-out transitions;
-                    # emits the validation report that gates promotion.
+    validate.py     # Field-weighted prediction accuracy on held-out transitions:
+                    # exact match for discrete fields, tolerance bands for floats,
+                    # fields weighted by their contribution to reward/planning
+                    # (primary_metric and player-state fields weigh most).
+                    # Emits the validation report that gates promotion.
   planning/
     planner.py      # Depth-limited rollout search over the induced model:
                     # enumerate macros from discovered controls, simulate d steps,

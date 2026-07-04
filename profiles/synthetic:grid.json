@@ -1,0 +1,40 @@
+{
+  "game_id": "synthetic:grid",
+  "controls": {
+    "move_left": "ArrowLeft",
+    "move_right": "ArrowRight",
+    "move_up": "ArrowUp",
+    "move_down": "ArrowDown"
+  },
+  "control_effects": {
+    "move_left": [
+      "game_state.player.x"
+    ],
+    "move_right": [
+      "game_state.player.x"
+    ],
+    "move_up": [
+      "game_state.player.y"
+    ],
+    "move_down": [
+      "game_state.player.y"
+    ]
+  },
+  "metrics": [
+    "score",
+    "steps"
+  ],
+  "primary_metric": "score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing synthetic:grid. Maximize score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), move_up (ArrowUp), move_down (ArrowDown). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing score.",
+  "state_schema": {
+    "status": "str",
+    "metrics.score": "int",
+    "metrics.steps": "int",
+    "game_state.player.x": "int",
+    "game_state.player.y": "int",
+    "game_state.environment.goal.x": "int",
+    "game_state.environment.goal.y": "int"
+  }
+}

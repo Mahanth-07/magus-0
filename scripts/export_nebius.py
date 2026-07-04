@@ -60,6 +60,7 @@ def example_to_sft(example: dict, image_bytes: bytes) -> dict:
         objective=example["objective"],
         legal_actions=example["legal_actions"],
         state_text=example.get("state_text", ""),
+        recent_outcomes=example.get("recent_outcomes"),
     )
     return {
         "messages": [
@@ -94,6 +95,7 @@ def example_to_text_sft(example: dict) -> dict:
         objective=example["objective"],
         legal_actions=example["legal_actions"],
         state_text=example.get("state_text", ""),
+        recent_outcomes=example.get("recent_outcomes"),
     )
     return {
         "messages": [

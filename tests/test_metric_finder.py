@@ -34,6 +34,15 @@ def test_fallback_prefers_key_affected_metric():
     assert result.primary_metric == "blorbs"
 
 
+def test_probe_evidence_beats_alphabetical_fallback():
+    # Two non-vital no-prior metrics: step 3 alone would pick "aarbs"
+    # (alphabetical); probe evidence must steer selection to "zorps".
+    schema = {"metrics.aarbs": "int", "metrics.zorps": "int"}
+    effects = {"use_x": ["metrics.zorps"]}
+    result = find_metrics(schema, control_effects=effects)
+    assert result.primary_metric == "zorps"
+
+
 def test_health_like_metrics_never_primary_when_alternative_exists():
     schema = {"metrics.health": "int", "metrics.score": "int"}
     result = find_metrics(schema, control_effects={})

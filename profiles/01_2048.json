@@ -47,7 +47,7 @@
   "primary_metric": "primary_score",
   "higher_is_better": true,
   "timing_ms": 120,
-  "objective": "You are playing 01_2048. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowdown (ArrowDown), use_space (Space). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizeing primary_score.",
+  "objective": "You are playing 01_2048. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowdown (ArrowDown), use_space (Space). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
   "state_schema": {
     "schemaVersion": "str",
     "gameId": "str",

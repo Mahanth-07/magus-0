@@ -20,9 +20,13 @@
     ],
     "move_right": [
       "game_state.player.blocks[0].x",
+      "game_state.player.blocks[0].y",
       "game_state.player.blocks[1].x",
+      "game_state.player.blocks[1].y",
       "game_state.player.blocks[2].x",
-      "game_state.player.blocks[3].x"
+      "game_state.player.blocks[2].y",
+      "game_state.player.blocks[3].x",
+      "game_state.player.blocks[3].y"
     ],
     "use_arrowup": [
       "game_state.player.blocks[0].x",
@@ -96,7 +100,7 @@
   "primary_metric": "primary_score",
   "higher_is_better": true,
   "timing_ms": 120,
-  "objective": "You are playing 29_tetris. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), use_arrowup (ArrowUp), move_down (ArrowDown), use_space (Space), move_down_x (x), use_z (z), move_down_a (a), move_down_w (w). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizeing primary_score.",
+  "objective": "You are playing 29_tetris. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), use_arrowup (ArrowUp), move_down (ArrowDown), use_space (Space), move_down_x (x), use_z (z), move_down_a (a), move_down_w (w). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
   "state_schema": {
     "schemaVersion": "str",
     "gameId": "str",

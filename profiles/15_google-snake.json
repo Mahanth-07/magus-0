@@ -3,13 +3,10 @@
   "controls": {
     "move_right": "ArrowLeft",
     "move_right_arrowright": "ArrowRight",
-    "move_up": "ArrowUp",
-    "move_up_arrowdown": "ArrowDown",
+    "move_up": "ArrowDown",
     "move_up_space": "Space",
-    "move_right_x": "x",
     "move_right_z": "z",
     "move_right_a": "a",
-    "move_right_d": "d",
     "move_up_w": "w",
     "move_up_s": "s"
   },
@@ -31,15 +28,7 @@
     "move_up": [
       "game_state.entities[0].y",
       "game_state.entities[1].y",
-      "game_state.entities[2].x",
-      "game_state.entities[3].x",
-      "game_state.player.y"
-    ],
-    "move_up_arrowdown": [
-      "game_state.entities[0].y",
-      "game_state.entities[1].y",
       "game_state.entities[2].y",
-      "game_state.entities[3].y",
       "game_state.player.y"
     ],
     "move_up_space": [
@@ -49,13 +38,6 @@
       "game_state.entities[3].y",
       "game_state.player.y"
     ],
-    "move_right_x": [
-      "game_state.entities[0].x",
-      "game_state.entities[1].x",
-      "game_state.entities[2].x",
-      "game_state.entities[3].x",
-      "game_state.player.x"
-    ],
     "move_right_z": [
       "game_state.entities[0].x",
       "game_state.entities[1].x",
@@ -64,13 +46,6 @@
       "game_state.player.x"
     ],
     "move_right_a": [
-      "game_state.entities[0].x",
-      "game_state.entities[1].x",
-      "game_state.entities[2].x",
-      "game_state.entities[3].x",
-      "game_state.player.x"
-    ],
-    "move_right_d": [
       "game_state.entities[0].x",
       "game_state.entities[1].x",
       "game_state.entities[2].x",
@@ -104,7 +79,7 @@
   "primary_metric": "primary_score",
   "higher_is_better": true,
   "timing_ms": 120,
-  "objective": "You are playing 15_google-snake. Maximize primary_score. Available controls: move_right (ArrowLeft), move_right_arrowright (ArrowRight), move_up (ArrowUp), move_up_arrowdown (ArrowDown), move_up_space (Space), move_right_x (x), move_right_z (z), move_right_a (a), move_right_d (d), move_up_w (w), move_up_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizeing primary_score.",
+  "objective": "You are playing 15_google-snake. Maximize primary_score. Available controls: move_right (ArrowLeft), move_right_arrowright (ArrowRight), move_up (ArrowDown), move_up_space (Space), move_right_z (z), move_right_a (a), move_up_w (w), move_up_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
   "state_schema": {
     "schemaVersion": "str",
     "gameId": "str",

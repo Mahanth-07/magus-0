@@ -9,7 +9,8 @@
     "use_z": "z",
     "move_left_a": "a",
     "move_right_d": "d",
-    "use_w": "w"
+    "use_w": "w",
+    "use_s": "s"
   },
   "control_effects": {
     "move_left": [
@@ -53,6 +54,10 @@
     "use_w": [
       "game_state.entities[0].x",
       "game_state.entities[0].y"
+    ],
+    "use_s": [
+      "game_state.entities[0].x",
+      "game_state.entities[0].y"
     ]
   },
   "metrics": [
@@ -64,7 +69,7 @@
   "primary_metric": "primary_score",
   "higher_is_better": true,
   "timing_ms": 120,
-  "objective": "You are playing 05_breakout. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), use_arrowdown (ArrowDown), use_space (Space), use_x (x), use_z (z), move_left_a (a), move_right_d (d), use_w (w). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizeing primary_score.",
+  "objective": "You are playing 05_breakout. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), use_arrowdown (ArrowDown), use_space (Space), use_x (x), use_z (z), move_left_a (a), move_right_d (d), use_w (w), use_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
   "state_schema": {
     "schemaVersion": "str",
     "gameId": "str",

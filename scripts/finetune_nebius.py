@@ -123,16 +123,15 @@ def get_job(client: httpx.Client, job_id: str) -> dict:
 
 
 def _model_id_from(job: dict) -> str | None:
-    """Best-effort extraction of the resulting fine-tuned model id across the field
-    names Nebius/OpenAI may use (the OpenAI-canonical field is fine_tuned_model;
-    Nebius checkpoints expose fine_tuned_model_checkpoint / result_files)."""
+    """Extract the SERVABLE fine-tuned model id (fine_tuned_model, or the
+    Nebius checkpoint field). Never falls back to result_files and never
+    returns a "file-..." id: a checkpoint FILE cannot serve chat completions,
+    and silently reporting one as the model id is how a dead NEBIUS_MODEL
+    ended up in .env. No servable id -> None (caller fails loudly)."""
     for key in ("fine_tuned_model", "fine_tuned_model_checkpoint"):
         val = job.get(key)
-        if val:
+        if val and not str(val).startswith("file-"):
             return val
-    rf = job.get("result_files")
-    if isinstance(rf, list) and rf:
-        return rf[0]
     return None
 
 
@@ -225,6 +224,16 @@ def main() -> None:
         print(f"status : {status}")
         if status == "succeeded":
             model_id = _model_id_from(job)
+            if model_id is None:
+                print("\n--- job object ---")
+                print(json.dumps(job, indent=2, default=str))
+                raise SystemExit(
+                    "\nJOB SUCCEEDED but NO SERVABLE MODEL ID was returned "
+                    "(fine_tuned_model is null and only checkpoint FILES exist).\n"
+                    "Do NOT put a 'file-...' id in NEBIUS_MODEL — it cannot serve "
+                    "chat completions.\nCheck the Nebius console for the deployed "
+                    "LoRA model id, or deploy the checkpoint there first."
+                )
             print(f"fine_tuned_model: {model_id}")
             print("\nTo drive the student:")
             print(f'  export NEBIUS_MODEL="{model_id}"')

@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ludus.onboarding.diff import flatten_state, is_tick_path
+from ludus.worldmodel.canonical import canonicalize
 from ludus.worldmodel.sandbox import run_predictions
 from ludus.worldmodel.transitions import Transition
 
@@ -62,8 +63,8 @@ def validate_model(
     weighted_hits = weighted_total = 0.0
 
     for t, pred in zip(transitions, preds):
-        actual_flat = flatten_state(t.after)
-        pred_flat = flatten_state(pred) if isinstance(pred, dict) else {}
+        actual_flat = flatten_state(canonicalize(t.after))
+        pred_flat = flatten_state(canonicalize(pred)) if isinstance(pred, dict) else {}
         for path, actual in actual_flat.items():
             if is_tick_path(path):
                 continue  # wall-clock/tick fields aren't game rules (prober parity)

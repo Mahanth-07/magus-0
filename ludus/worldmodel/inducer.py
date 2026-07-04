@@ -16,6 +16,7 @@ from pathlib import Path
 
 from ludus.onboarding.diff import flatten_state, is_tick_path
 from ludus.onboarding.profile import GameProfile
+from ludus.worldmodel.canonical import canonicalize
 from ludus.worldmodel.sandbox import ALLOWED_IMPORTS, check_source
 from ludus.worldmodel.transitions import Transition, TransitionStore
 from ludus.worldmodel.validate import ValidationReport, validate_model
@@ -47,8 +48,8 @@ def extract_code(text: str) -> str:
 
 
 def _render_transition(t: Transition) -> str:
-    before = flatten_state(t.before)
-    after = flatten_state(t.after)
+    before = flatten_state(canonicalize(t.before))
+    after = flatten_state(canonicalize(t.after))
     changed = {p: (before.get(p), after.get(p))
                for p in before.keys() | after.keys()
                if before.get(p) != after.get(p)}
@@ -71,7 +72,9 @@ def build_synthesis_prompt(
         "no I/O, no randomness — if a field is genuinely unpredictable "
         "(random spawns), copy it through unchanged rather than guessing. "
         "Infer the game's mechanics (movement bounds, scoring, collisions, "
-        "counters) from the observed transitions and reproduce them exactly."
+        "counters) from the observed transitions and reproduce them exactly. "
+        "Entity lists are shown in a canonical sorted order; your predict() "
+        "may return entities in any order — comparison is order-insensitive."
     )
     def _changes_metrics(t: Transition) -> bool:
         b = flatten_state(t.before.get("metrics", {}))
@@ -94,8 +97,8 @@ def build_synthesis_prompt(
     ]
     for t in sample[:MAX_FULL_STATES]:
         lines.append(f"  action={t.action!r}")
-        lines.append(f"  before={json.dumps(t.before, default=str)}")
-        lines.append(f"  after ={json.dumps(t.after, default=str)}")
+        lines.append(f"  before={json.dumps(canonicalize(t.before), default=str)}")
+        lines.append(f"  after ={json.dumps(canonicalize(t.after), default=str)}")
     lines.append("")
     lines.append("Observed transitions (flattened changed fields, (before, after)):")
     for t in sample:

@@ -159,3 +159,60 @@ def test_induce_refuses_single_episode_dataset(tmp_path):
             synthesizer=lambda s, u: "```python\ndef predict(s,a):\n    return s\n```",
             out_dir=tmp_path / "wm", max_iterations=1, threshold=0.9, seed=5,
         )
+
+
+def test_gate_requires_train_pass_too_rare_event_only_in_train(tmp_path):
+    # Live-acceptance regression: a rare mechanic (score jump) observed ONLY
+    # in train episodes must block INDUCED even when holdout passes cleanly.
+    from ludus.worldmodel.transitions import Transition
+
+    store = TransitionStore(tmp_path / "t.jsonl")
+
+    def noop_transition(ep, step):
+        s = {"status": "playing", "metrics": {"score": 0},
+             "game_state": {"player": {"x": step}}}
+        s2 = {"status": "playing", "metrics": {"score": 0},
+              "game_state": {"player": {"x": step + 1}}}
+        return Transition(game_id="g", episode_id=ep, step=step,
+                          action="move_right", key="ArrowRight",
+                          before=s, after=s2)
+
+    episodes = ["a", "b", "c", "d"]
+    for ep in episodes:
+        for step in range(3):
+            store.append(noop_transition(ep, step))
+    # find which episode the (seeded) split holds out, then plant the rare
+    # event in every TRAIN episode only
+    _, holdout = store.split(holdout_frac=0.25, seed=5)
+    holdout_ep = holdout[0].episode_id
+    for ep in episodes:
+        if ep == holdout_ep:
+            continue
+        store.append(Transition(
+            game_id="g", episode_id=ep, step=99, action="collect", key="c",
+            before={"status": "playing", "metrics": {"score": 0},
+                    "game_state": {"player": {"x": 0}}},
+            after={"status": "playing", "metrics": {"score": 10},
+                   "game_state": {"player": {"x": 0}}},
+        ))
+
+    # model correct for move_right, WRONG for collect (predicts +1 not +10)
+    wrong_rare = '''
+import copy
+
+def predict(state, action):
+    out = copy.deepcopy(state)
+    if action == "move_right":
+        out["game_state"]["player"]["x"] += 1
+    elif action == "collect":
+        out["metrics"]["score"] += 1
+    return out
+'''
+    result = induce_world_model(
+        "g", store, profile=_grid_profile(),
+        synthesizer=lambda s, u: f"```python\n{wrong_rare}\n```",
+        out_dir=tmp_path / "wm", max_iterations=2, threshold=0.9, seed=5,
+    )
+    assert result.status == "FAILED"          # train evidence must block the gate
+    saved = json.loads((tmp_path / "wm" / "g" / "report.json").read_text())
+    assert saved["train_overall"] < 1.0

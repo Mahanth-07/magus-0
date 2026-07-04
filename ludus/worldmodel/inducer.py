@@ -126,6 +126,7 @@ def induce_world_model(
     important = [f"metrics.{profile.primary_metric}", "game_state.player"]
 
     source, report = "", ValidationReport()
+    train_report = ValidationReport()
     counterexamples: list[dict] = []
     iterations = 0
     for iterations in range(1, max_iterations + 1):
@@ -138,22 +139,24 @@ def induce_world_model(
                                 "predicted": v, "actual": "allowlisted code"}
                                for v in violations]
             report = ValidationReport()
+            train_report = ValidationReport()
             continue
-        # repair signal from TRAIN; the gate below is on HOLDOUT
+        # repair signal from TRAIN; the gate below requires BOTH splits to pass
         train_report = validate_model(source, train, important_paths=important,
                                       threshold=threshold)
         report = validate_model(source, holdout, important_paths=important,
                                 threshold=threshold)
-        if report.passed:
+        if train_report.passed and report.passed:
             break
         counterexamples = train_report.counterexamples
 
-    status = "INDUCED" if report.passed else "FAILED"
+    status = "INDUCED" if (train_report.passed and report.passed) else "FAILED"
     model_dir = Path(out_dir) / game_id
     model_dir.mkdir(parents=True, exist_ok=True)
     (model_dir / "model.py").write_text(source or "# no source produced\n")
     (model_dir / "report.json").write_text(json.dumps({
         "status": status, "overall": report.overall,
+        "train_overall": train_report.overall,
         "per_field": report.per_field, "n_cases": report.n_cases,
         "iterations": iterations, "threshold": threshold,
         "train_size": len(train), "holdout_size": len(holdout),

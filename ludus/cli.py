@@ -135,7 +135,7 @@ def main() -> None:
     ap.add_argument("game")
     ap.add_argument("mode", choices=["baseline", "memory"])
     ap.add_argument("--steps", type=int, default=8)
-    ap.add_argument("--provider", default="mock", choices=["mock", "gateway", "anthropic", "nebius", "fireworks", "fallback"])
+    ap.add_argument("--provider", default="mock", choices=["mock", "gateway", "anthropic", "nebius", "fireworks", "fallback", "planner"])
     ap.add_argument("--fake", action="store_true", help="use FakeGameWorld (no browser)")
     ap.add_argument("--headed", action="store_true", help="show the browser window (great for demos)")
     ap.add_argument("--profile", type=Path, default=None,
@@ -152,7 +152,14 @@ def main() -> None:
     else:
         cfg = load_game_config(Path("configs") / f"{args.game}.yaml")
         adapter = ADAPTERS[args.game](cfg)
-    provider = build_provider(args.provider)
+    if args.provider == "planner":
+        if not args.profile:
+            raise SystemExit("--provider planner requires --profile "
+                             "(the planner needs the game's GameProfile)")
+        from ludus.planning.provider import PlannerProvider
+        provider = PlannerProvider(profile)
+    else:
+        provider = build_provider(args.provider)
     gw = FakeGameWorld([{cfg.primary_metric: 0.0}]) if args.fake else GameWorldClient(
         game_id=GAMEWORLD_IDS.get(cfg.name, cfg.name), timing_ms=cfg.timing_ms,
         headless=not args.headed)

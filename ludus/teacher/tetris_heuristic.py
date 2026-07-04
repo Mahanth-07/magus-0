@@ -460,9 +460,12 @@ def rank_placements(
       top_k: number of best candidates to return.
 
     Returns a list (best-first) of dicts, each:
-      {"rotation": r, "target_col": c, "holes": H, "max_height": MH,
+      {"rotation": r, "target_col": c, "score": S, "holes": H, "max_height": MH,
        "lines_cleared": L, "actions": [<rotate xN, left/right..., drop>]}
-    Sorted by lines_cleared desc, then holes asc, then max_height asc.
+    Sorted by the full Dellacherie score, descending — the SAME evaluation
+    best_move uses, so candidate [0] is exactly the teacher's move. (The student
+    is trained to copy candidate [0] verbatim; a weaker sort here would cap the
+    student below the teacher.)
     """
     shape = shape.lower()
     if shape not in ROTATIONS:
@@ -479,21 +482,22 @@ def rank_placements(
             if res is None:
                 continue
             new_board, landing_top_row, lines = res
-            _, feats = _score_board(new_board, landing_top_row, lines)
+            score, feats = _score_board(new_board, landing_top_row, lines)
             rotate_presses = (rot_idx - current_rotation) % cycle
             actions = _macro_live(shape, rotate_presses, left, current_left)
             candidates.append({
                 "rotation": rot_idx,
                 "target_col": left,
+                "score": score,
                 "holes": feats["holes"],
                 "max_height": feats["max_height"],
                 "lines_cleared": lines,
                 "actions": actions,
             })
 
-    # best-first: most lines cleared, then fewest holes, then lowest/flattest stack
+    # best-first by the teacher's evaluation; deterministic tie-break on pose
     candidates.sort(
-        key=lambda c: (-c["lines_cleared"], c["holes"], c["max_height"])
+        key=lambda c: (-c["score"], c["rotation"], c["target_col"])
     )
     return candidates[:top_k]
 

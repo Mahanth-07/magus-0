@@ -310,8 +310,9 @@ def test_rank_placements_flat_i_candidate_exists_with_no_holes():
     assert flat, "expected at least one flat-I candidate with 0 holes"
 
 
-def test_rank_placements_sorted_best_first_min_holes():
-    # The chosen best (index 0) must have the minimum holes among all candidates.
+def test_rank_placements_sorted_by_dellacherie_score_desc():
+    # Candidates carry the full Dellacherie evaluation and are sorted by it,
+    # best-first — the same scoring best_move uses, not a crude lines/holes sort.
     b = empty_board()
     heights = [5, 2, 6, 1, 4, 3, 7, 2, 5, 1]
     for c, h in enumerate(heights):
@@ -319,11 +320,46 @@ def test_rank_placements_sorted_best_first_min_holes():
             b[r][c] = 1
     cands = rank_placements(b, "s", current_left=3, current_rotation=0, top_k=20)
     assert cands
-    best = cands[0]
-    assert best["holes"] == min(c["holes"] for c in cands)
-    # confirm the sort ordering is actually best-first by the spec key
-    keys = [(-c["lines_cleared"], c["holes"], c["max_height"]) for c in cands]
-    assert keys == sorted(keys)
+    scores = [c["score"] for c in cands]
+    assert scores == sorted(scores, reverse=True)
+
+
+def _board_from_strings(rows: list[str]) -> list[list[int]]:
+    return [[1 if ch == "#" else 0 for ch in row] for row in rows]
+
+
+def test_rank_placements_candidate0_is_the_teachers_move():
+    # A board where the old (lines, holes, maxH) sort disagrees with the
+    # Dellacherie teacher: the crude sort takes a line clear that leaves a hole;
+    # best_move fills the col-5 well instead. Candidate [0] must MATCH the
+    # teacher, because the student is trained to copy candidate [0] verbatim.
+    b = _board_from_strings([
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "..........",
+        "....#.....",
+        "...##.....",
+        "...##..#..",
+        "..###..##.",
+        "..###.##..",
+        "..###.####",
+        "..###.####",
+        "##########",
+    ])
+    mv = best_move(b, "t", current_left=3, current_rotation=0)
+    cands = rank_placements(b, "t", current_left=3, current_rotation=0, top_k=40)
+    assert (cands[0]["rotation"], cands[0]["target_col"]) == (
+        mv["target_rotation"], mv["target_col"]
+    )
 
 
 def test_rank_placements_every_candidate_action_ends_in_drop():

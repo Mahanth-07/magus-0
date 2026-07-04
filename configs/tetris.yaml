@@ -6,7 +6,8 @@ objective: >-
   Tetris. The game state lists "Candidate placements": EVERY legal rotation x column
   hard-drop, already simulated for you in code, each showing the resulting holes /
   max height / lines cleared and the EXACT "actions" macro that reaches it. The list is
-  ALREADY SORTED best-first (most lines cleared, then fewest holes, then flattest/lowest).
+  ALREADY SORTED best-first by an expert Tetris evaluation (line clears, holes, height,
+  surface smoothness).
   Candidate [0] is the BEST move. DO NOT invent your own moves and DO NOT guess where the
   piece will land — it is already computed. Simply COPY candidate [0]'s "actions" array
   VERBATIM into your response's "actions" field, character-for-character, INCLUDING every

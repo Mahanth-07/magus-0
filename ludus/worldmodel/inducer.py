@@ -32,9 +32,16 @@ class InductionResult:
 
 
 def extract_code(text: str) -> str:
-    """Pull the python source out of a fenced block; bare source passes through."""
-    m = re.search(r"```(?:python)?\n(.*?)```", text, re.DOTALL)
-    return m.group(1).strip() + "\n" if m else text
+    """Pull the python source out of a fenced block; bare source passes
+    through. With multiple blocks, prefer the one defining predict() —
+    LLMs sometimes emit explanatory snippets before the real model."""
+    blocks = re.findall(r"```(?:python)?\n(.*?)```", text, re.DOTALL)
+    if not blocks:
+        return text
+    for block in blocks:
+        if "def predict" in block:
+            return block.strip() + "\n"
+    return blocks[0].strip() + "\n"
 
 
 def _render_transition(t: Transition) -> str:
@@ -81,8 +88,9 @@ def build_synthesis_prompt(
         lines.append("  " + _render_transition(t))
     if counterexamples:
         lines.append("")
-        lines.append("YOUR PREVIOUS ATTEMPT was wrong on these held-out cases "
-                     "(field, action, predicted vs actual). Fix the model:")
+        lines.append("YOUR PREVIOUS ATTEMPT was wrong on these observed "
+                     "training cases (field, action, predicted vs actual). "
+                     "Fix the model:")
         for ce in counterexamples:
             lines.append(
                 f"  field={ce['field']} action={ce['action']} "

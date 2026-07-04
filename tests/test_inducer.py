@@ -68,6 +68,14 @@ def test_extract_code_bare_source_passthrough():
     assert extract_code(src) == src
 
 
+def test_extract_code_prefers_block_containing_predict():
+    text = (
+        "First, the key insight:\n```python\nMOVES = {\"a\": 1}\n```\n"
+        "Full model:\n```python\ndef predict(state, action):\n    return state\n```\n"
+    )
+    assert extract_code(text).startswith("def predict")
+
+
 def test_induce_succeeds_first_try_with_correct_model(tmp_path):
     calls = []
 

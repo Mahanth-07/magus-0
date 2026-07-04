@@ -68,11 +68,13 @@ class ControlProber:
         probe_keys: list[str] | None = None,
         repeats: int = 3,
         duration_ms: int = 80,
+        ambient_window_s: float | None = None,
     ) -> None:
         self._factory = client_factory
         self._keys = list(probe_keys or DEFAULT_PROBE_KEYS)
         self._repeats = repeats
         self._duration_ms = duration_ms
+        self._ambient_window_s = ambient_window_s
 
     def probe(self) -> ProbeReport:
         report = ProbeReport()
@@ -112,7 +114,8 @@ class ControlProber:
         the client's post-press settle), so drift from continuously-moving
         games (snake, flappy) is captured as ambient instead of being
         misattributed to whichever key happens to be pressed (M1 finding)."""
-        window_s = (self._duration_ms + 100) / 1000.0
+        window_s = (self._ambient_window_s if self._ambient_window_s is not None
+                    else (self._duration_ms + 100) / 1000.0)
         ambient: set[str] = set()
         for _ in range(self._repeats):
             if _status(client.raw_state()) != "playing":

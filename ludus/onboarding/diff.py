@@ -11,6 +11,17 @@ from __future__ import annotations
 
 MAX_INDEXED_LIST = 16
 
+# Tick/wall-clock fields change on every frame and are unknowable to a
+# transition function — they are not game rules.  Shared by prober.py
+# (control attribution) and validate.py (grading parity).
+TICK_HINTS = ("steps", "frame", "tick", "time")
+
+
+def is_tick_path(path: str) -> bool:
+    """Return True if *path* looks like a tick counter or wall-clock field."""
+    leaf = path.rsplit(".", 1)[-1].lower()
+    return any(h in leaf for h in TICK_HINTS)
+
 _SCALARS = (str, int, float, bool)
 _MISSING = object()
 

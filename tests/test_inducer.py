@@ -161,6 +161,26 @@ def test_induce_refuses_single_episode_dataset(tmp_path):
         )
 
 
+def test_prompt_sample_prioritizes_metric_changing_transitions():
+    from ludus.worldmodel.inducer import MAX_PROMPT_TRANSITIONS, build_synthesis_prompt
+    from ludus.worldmodel.transitions import Transition
+
+    def noop(i):
+        return Transition(game_id="g", episode_id=f"e{i}", step=i,
+                          action="move_right", key="R",
+                          before={"metrics": {"score": 0}, "game_state": {"player": {"x": i}}},
+                          after={"metrics": {"score": 0}, "game_state": {"player": {"x": i + 1}}})
+
+    rare = Transition(game_id="g", episode_id="rare", step=0,
+                      action="collect", key="c",
+                      before={"metrics": {"score": 0}, "game_state": {"player": {"x": 0}}},
+                      after={"metrics": {"score": 10}, "game_state": {"player": {"x": 0}}})
+    # rare event buried far beyond the sample cutoff
+    train = [noop(i) for i in range(MAX_PROMPT_TRANSITIONS + 20)] + [rare]
+    _, user = build_synthesis_prompt("g", _grid_profile(), train, [], "")
+    assert "collect" in user, "metric-changing transition must reach the prompt"
+
+
 def test_gate_requires_train_pass_too_rare_event_only_in_train(tmp_path):
     # Live-acceptance regression: a rare mechanic (score jump) observed ONLY
     # in train episodes must block INDUCED even when holdout passes cleanly.

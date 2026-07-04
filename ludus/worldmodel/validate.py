@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from ludus.onboarding.diff import flatten_state
+from ludus.onboarding.diff import flatten_state, is_tick_path
 from ludus.worldmodel.sandbox import run_predictions
 from ludus.worldmodel.transitions import Transition
 
@@ -65,6 +65,8 @@ def validate_model(
         actual_flat = flatten_state(t.after)
         pred_flat = flatten_state(pred) if isinstance(pred, dict) else {}
         for path, actual in actual_flat.items():
+            if is_tick_path(path):
+                continue  # wall-clock/tick fields aren't game rules (prober parity)
             ok = path in pred_flat and _matches(pred_flat[path], actual, float_tol)
             weight = IMPORTANT_WEIGHT if _is_important(path, important_paths) else 1.0
             field_total[path] = field_total.get(path, 0) + 1

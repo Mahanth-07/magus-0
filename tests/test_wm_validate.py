@@ -80,3 +80,25 @@ def test_crashed_prediction_counts_all_fields_wrong():
                             important_paths=["metrics.score"], threshold=0.9)
     assert report.overall == 0.0
     assert report.passed is False
+
+
+def test_wall_clock_fields_are_not_graded():
+    src = '''
+import copy
+
+def predict(state, action):
+    out = copy.deepcopy(state)
+    if action == "inc":
+        out["metrics"]["score"] += 1
+    return out
+'''
+    ts = [Transition(
+        game_id="g", episode_id=f"e{i}", step=0, action="inc", key="x",
+        before={"metrics": {"score": i}, "timestampMs": 1000 + i},
+        after={"metrics": {"score": i + 1}, "timestampMs": 2000 + i},
+    ) for i in range(3)]
+    report = validate_model(src, ts, important_paths=["metrics.score"],
+                            threshold=0.9)
+    assert "timestampMs" not in report.per_field
+    assert report.overall == 1.0
+    assert report.passed

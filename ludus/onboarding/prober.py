@@ -26,7 +26,7 @@ import math
 import time
 from dataclasses import dataclass, field
 
-from ludus.onboarding.diff import diff_states, flatten_state
+from ludus.onboarding.diff import TICK_HINTS, diff_states, flatten_state, is_tick_path
 
 log = logging.getLogger("ludus.onboarding")
 
@@ -39,7 +39,10 @@ DEFAULT_PROBE_KEYS = [
 ]
 
 # Tick counters change on every apply(); never attribute them to a key.
-_TICK_HINTS = ("steps", "frame", "tick", "time")
+# _TICK_HINTS and _is_tick now live in diff.py (public TICK_HINTS / is_tick_path)
+# for parity with validation; keep module-level aliases so any external code
+# that imported them directly still works.
+_TICK_HINTS = TICK_HINTS
 
 
 @dataclass
@@ -57,8 +60,7 @@ def _status(state: dict) -> str:
 
 
 def _is_tick(path: str) -> bool:
-    leaf = path.rsplit(".", 1)[-1].lower()
-    return any(h in leaf for h in _TICK_HINTS)
+    return is_tick_path(path)
 
 
 class ControlProber:

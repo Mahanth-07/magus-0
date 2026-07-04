@@ -71,7 +71,17 @@ def build_synthesis_prompt(
         "Infer the game's mechanics (movement bounds, scoring, collisions, "
         "counters) from the observed transitions and reproduce them exactly."
     )
-    sample = train[:MAX_PROMPT_TRANSITIONS]
+    def _changes_metrics(t: Transition) -> bool:
+        return flatten_state(t.before.get("metrics", {})) != flatten_state(
+            t.after.get("metrics", {}))
+
+    # Rare mechanics live in metric-changing transitions (scoring, line
+    # clears, damage); random exploration makes them scarce, so they get
+    # prompt priority — an unseen mechanic WILL be hallucinated (live M2
+    # finding). Fill the rest with ordinary transitions in original order.
+    rare = [t for t in train if _changes_metrics(t)]
+    common = [t for t in train if not _changes_metrics(t)]
+    sample = (rare + common)[:MAX_PROMPT_TRANSITIONS]
     lines = [
         f"Game: {game_id}",
         f"Actions: {sorted(profile.controls)}",

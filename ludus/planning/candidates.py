@@ -18,7 +18,7 @@ def render_candidate_block(ranked: list[dict], *, primary_metric: str) -> str:
     ]
     for i, c in enumerate(ranked):
         out.append(
-            f"[{i}] predicted {primary_metric} +{c['predicted_reward']:.1f}, "
+            f"[{i}] predicted {primary_metric} {c['predicted_reward']:+.1f}, "
             f"actions={c['actions']}"
         )
     return "\n".join(out)

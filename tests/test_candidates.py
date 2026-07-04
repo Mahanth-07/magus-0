@@ -18,3 +18,10 @@ def test_renders_m0_compatible_block():
 
 def test_empty_candidates_render_empty_string():
     assert render_candidate_block([], primary_metric="score") == ""
+
+
+def test_negative_rewards_render_with_proper_sign():
+    ranked = [{"actions": ["move_left"], "predicted_reward": -5.0}]
+    block = render_candidate_block(ranked, primary_metric="score")
+    assert "predicted score -5.0" in block
+    assert "+-" not in block

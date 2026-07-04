@@ -81,6 +81,13 @@ def test_provider_without_raw_state_falls_back_to_first_action(tmp_path):
     assert decision.actions == [sorted(_grid_profile().controls)[0]]
 
 
+def test_provider_refuses_missing_model_file(tmp_path):
+    root = _model_dir(tmp_path)
+    (root / "synthetic:grid" / "model.py").unlink()
+    with pytest.raises(SystemExit, match="model.py missing"):
+        PlannerProvider(_grid_profile(), worldmodels_dir=root)
+
+
 def test_provider_end_to_end_scores_in_real_episode(tmp_path):
     """The M3 offline acceptance: planner over an induced model beats random.
     From spawn (2,2) with goal (3,2), 5 steps must collect >= 10 score."""

@@ -10,12 +10,14 @@ normal ModelProvider; no VLM, no network, decisions in milliseconds-to-tens-of-m
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from ludus.onboarding.profile import GameProfile
-from ludus.planning.candidates import render_candidate_block
 from ludus.planning.planner import rank_macros
 from ludus.schemas import Decision, PlannerContext
+
+log = logging.getLogger("ludus.planning")
 
 MAX_MACRO_MOVES = 5  # Decision.actions contract (loop applies 1-5 moves)
 
@@ -43,12 +45,19 @@ class PlannerProvider:
                 f"(status={report.get('status')!r}, overall="
                 f"{report.get('overall')}); refusing to plan against an "
                 f"unvalidated model")
-        self._source = (model_dir / "model.py").read_text()
+        model_path = model_dir / "model.py"
+        if not model_path.exists():
+            raise SystemExit(
+                f"model.py missing for {profile.game_id} (report says INDUCED "
+                f"— corrupted artifacts?); re-run: python -m ludus.cli induce "
+                f"{profile.game_id}")
+        self._source = model_path.read_text()
 
     def available(self) -> bool:
         return True
 
     def _fallback(self, why: str) -> Decision:
+        log.warning("PlannerProvider fallback: %s", why)
         action = sorted(self._profile.controls)[0]
         return self._decision([action], reason=f"planner fallback: {why}")
 
@@ -82,10 +91,4 @@ class PlannerProvider:
                   f"{'+' if best['predicted_reward'] >= 0 else ''}"
                   f"{best['predicted_reward']:g}")
         decision = self._decision(macro, reason=reason)
-        # Stage-4 exhaust surface: the block a selector/student would see.
-        candidate_block = render_candidate_block(
-            ranked, primary_metric=self._profile.primary_metric
-        )[:400]
-        if candidate_block:
-            decision.scene_summary = candidate_block
         return decision

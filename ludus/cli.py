@@ -111,6 +111,7 @@ def cmd_duel(game: str, profile_path=None, worldmodels_dir="worldmodels",
     planner = PlannerProvider(profile, worldmodels_dir=worldmodels_dir)
     baseline = baseline_provider or build_provider(baseline_name)
 
+    _channels = {"planner": "raw_state", "baseline": "screenshot"}
     sides = {}
     for label, provider in (("planner", planner), ("baseline", baseline)):
         gw = _client_factory(game, timing_ms=profile.timing_ms,
@@ -129,6 +130,7 @@ def cmd_duel(game: str, profile_path=None, worldmodels_dir="worldmodels",
             "score": result.final_metrics.get(profile.primary_metric, 0.0),
             "legal_action_rate": result.legal_action_rate,
             "steps": result.steps,
+            "channel": _channels[label],
         }
 
     p, b = sides["planner"]["score"], sides["baseline"]["score"]
@@ -139,11 +141,13 @@ def cmd_duel(game: str, profile_path=None, worldmodels_dir="worldmodels",
            "planner": sides["planner"], "baseline": sides["baseline"],
            "winner": winner}
 
+    channels = {"planner": "[raw_state]", "baseline": "[screenshot]"}
     print(f"==== DUEL {game} ({steps} steps, metric={profile.primary_metric}) ====")
     for label in ("planner", "baseline"):
         s = sides[label]
         print(f"  {label:9s} ({s['provider']:8s}): {profile.primary_metric}="
-              f"{s['score']:g}  legal_rate={s['legal_action_rate']:.2f}")
+              f"{s['score']:g}  legal_rate={s['legal_action_rate']:.2f}  "
+              f"{channels[label]}")
     print(f"  winner: {winner}")
 
     dest = Path(runs_dir) / f"duel-{game}.json"

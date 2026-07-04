@@ -16,6 +16,9 @@ from ludus.loop import run_episode
 from ludus.adapters.generic import GenericAdapter
 from ludus.onboarding.onboard import onboard_game
 from ludus.onboarding.profile import GameProfile
+from ludus.worldmodel.explore import explore_game
+from ludus.worldmodel.inducer import induce_world_model
+from ludus.worldmodel.transitions import TransitionStore
 
 ADAPTERS = {"tetris": TetrisAdapter, "wolf3d": Wolf3DAdapter,
             "fireboy_watergirl": FireboyWatergirlAdapter}
@@ -62,16 +65,70 @@ def cmd_onboard(game: str, out_dir="profiles", headless: bool = True) -> None:
     print(f"  objective: {profile.objective}")
 
 
+def cmd_explore(game: str, profile_path=None, data_dir="data", episodes=5,
+                steps=40, seed=7, headless: bool = True) -> None:
+    profile = GameProfile.load(profile_path or Path("profiles") / f"{game}.json")
+    factory = _client_factory(game, timing_ms=profile.timing_ms, headless=headless)
+    store = TransitionStore(Path(data_dir) / game / "transitions.jsonl")
+    summary = explore_game(profile, factory, store=store, episodes=episodes,
+                           steps_per_episode=steps, seed=seed)
+    print(f"explored {game}: {summary['transitions']} transitions over "
+          f"{summary['episodes']} episodes ({summary['terminals']} terminals) "
+          f"-> {Path(data_dir) / game / 'transitions.jsonl'}")
+
+
+def cmd_induce(game: str, profile_path=None, data_dir="data",
+               out_dir="worldmodels", synthesizer=None, max_iterations=4) -> None:
+    from ludus.worldmodel.llm import chat, default_backend
+    profile = GameProfile.load(profile_path or Path("profiles") / f"{game}.json")
+    store = TransitionStore(Path(data_dir) / game / "transitions.jsonl")
+    if not store.load():
+        raise SystemExit(f"no transitions for {game}; run: python -m ludus.cli explore {game}")
+    if synthesizer is None:
+        print(f"[induce] synthesis backend: {default_backend()}")
+        synthesizer = chat
+    result = induce_world_model(game, store, profile=profile,
+                                synthesizer=synthesizer, out_dir=out_dir,
+                                max_iterations=max_iterations)
+    print(f"induction {result.status} after {result.iterations} iteration(s): "
+          f"holdout accuracy {result.report.overall:.3f} "
+          f"({result.report.n_cases} cases) -> {result.model_path}")
+    worst = sorted(result.report.per_field.items(), key=lambda kv: kv[1])[:5]
+    for path, acc in worst:
+        print(f"  worst field: {path} = {acc:.2f}")
+
+
 def main() -> None:
     _load_dotenv()
 
-    if len(sys.argv) > 1 and sys.argv[1] == "onboard":
-        ap = argparse.ArgumentParser(prog="ludus onboard")
-        ap.add_argument("game", help="adapter name, raw GameWorld id, or synthetic:<name>")
-        ap.add_argument("--out", default="profiles")
-        ap.add_argument("--headed", action="store_true")
-        args = ap.parse_args(sys.argv[2:])
-        cmd_onboard(args.game, out_dir=args.out, headless=not args.headed)
+    if len(sys.argv) > 1 and sys.argv[1] in ("onboard", "explore", "induce"):
+        cmd = sys.argv[1]
+        ap = argparse.ArgumentParser(prog=f"ludus {cmd}")
+        ap.add_argument("game")
+        if cmd == "onboard":
+            ap.add_argument("--out", default="profiles")
+            ap.add_argument("--headed", action="store_true")
+            args = ap.parse_args(sys.argv[2:])
+            cmd_onboard(args.game, out_dir=args.out, headless=not args.headed)
+        elif cmd == "explore":
+            ap.add_argument("--profile", type=Path, default=None)
+            ap.add_argument("--data-dir", default="data")
+            ap.add_argument("--episodes", type=int, default=5)
+            ap.add_argument("--steps", type=int, default=40)
+            ap.add_argument("--seed", type=int, default=7)
+            ap.add_argument("--headed", action="store_true")
+            args = ap.parse_args(sys.argv[2:])
+            cmd_explore(args.game, profile_path=args.profile, data_dir=args.data_dir,
+                        episodes=args.episodes, steps=args.steps, seed=args.seed,
+                        headless=not args.headed)
+        else:
+            ap.add_argument("--profile", type=Path, default=None)
+            ap.add_argument("--data-dir", default="data")
+            ap.add_argument("--out", default="worldmodels")
+            ap.add_argument("--iterations", type=int, default=4)
+            args = ap.parse_args(sys.argv[2:])
+            cmd_induce(args.game, profile_path=args.profile, data_dir=args.data_dir,
+                       out_dir=args.out, max_iterations=args.iterations)
         return
 
     ap = argparse.ArgumentParser()

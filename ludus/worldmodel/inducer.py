@@ -73,8 +73,9 @@ def build_synthesis_prompt(
         "(random spawns), copy it through unchanged rather than guessing. "
         "Infer the game's mechanics (movement bounds, scoring, collisions, "
         "counters) from the observed transitions and reproduce them exactly. "
-        "Entity lists are shown in a canonical sorted order; your predict() "
-        "may return entities in any order — comparison is order-insensitive."
+        "Entity lists are compared as SETS of identical dicts (order-free); "
+        "unpredictable entities (random spawns) should be omitted rather than "
+        "guessed — a guessed-wrong entity scores no better than an omitted one."
     )
     def _changes_metrics(t: Transition) -> bool:
         b = flatten_state(t.before.get("metrics", {}))

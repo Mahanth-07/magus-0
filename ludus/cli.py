@@ -67,12 +67,14 @@ def cmd_onboard(game: str, out_dir="profiles", headless: bool = True) -> None:
 
 
 def cmd_explore(game: str, profile_path=None, data_dir="data", episodes=5,
-                steps=40, seed=7, headless: bool = True) -> None:
+                steps=40, seed=7, headless: bool = True,
+                duration_ms=None) -> None:
     profile = GameProfile.load(profile_path or Path("profiles") / f"{game}.json")
     factory = _client_factory(game, timing_ms=profile.timing_ms, headless=headless)
     store = TransitionStore(Path(data_dir) / game / "transitions.jsonl")
     summary = explore_game(profile, factory, store=store, episodes=episodes,
-                           steps_per_episode=steps, seed=seed)
+                           steps_per_episode=steps, seed=seed,
+                           duration_ms=duration_ms)
     print(f"explored {game}: {summary['transitions']} transitions over "
           f"{summary['episodes']} episodes ({summary['terminals']} terminals) "
           f"-> {Path(data_dir) / game / 'transitions.jsonl'}")
@@ -175,10 +177,11 @@ def main() -> None:
             ap.add_argument("--steps", type=int, default=40)
             ap.add_argument("--seed", type=int, default=7)
             ap.add_argument("--headed", action="store_true")
+            ap.add_argument("--duration-ms", type=int, default=None)
             args = ap.parse_args(sys.argv[2:])
             cmd_explore(args.game, profile_path=args.profile, data_dir=args.data_dir,
                         episodes=args.episodes, steps=args.steps, seed=args.seed,
-                        headless=not args.headed)
+                        headless=not args.headed, duration_ms=args.duration_ms)
         elif cmd == "induce":
             ap.add_argument("--profile", type=Path, default=None)
             ap.add_argument("--data-dir", default="data")

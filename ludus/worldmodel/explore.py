@@ -22,11 +22,18 @@ def explore_game(
     episodes: int,
     steps_per_episode: int,
     seed: int,
+    duration_ms: int | None = None,
 ) -> dict:
-    """Returns {"episodes": n, "transitions": n, "terminals": n}."""
+    """Returns {"episodes": n, "transitions": n, "terminals": n}.
+
+    Pass duration_ms to override profile.timing_ms — use short "tap" presses
+    for turn-based games where key-repeat would fire multiple moves per press,
+    contaminating induction transitions with multi-move dynamics.
+    """
     rng = random.Random(seed)
     actions = sorted(profile.controls)
     n_transitions = n_terminals = 0
+    press_duration = duration_ms if duration_ms is not None else profile.timing_ms
 
     for ep in range(episodes):
         episode_id = f"{profile.game_id}-explore-{seed}-{ep}"
@@ -38,7 +45,7 @@ def explore_game(
                     break
                 action = rng.choice(actions)
                 client.apply({"key": profile.controls[action],
-                              "duration_ms": profile.timing_ms})
+                              "duration_ms": press_duration})
                 after = client.raw_state()
                 terminal = str(after.get("status", "playing")) != "playing"
                 store.append(Transition(

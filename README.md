@@ -211,10 +211,15 @@ A/B eval: student 1022 vs gemini-2.5-flash 466 (live, 15 steps) ✅
    same budget. Live: planner won the grid duel 10–0 (caveat recorded: a vision baseline is
    structurally blind on synthetic games — fake PNGs; the harness mechanics, not the
    comparison, are the validated claim). The real-game target (01_2048, turn-based, ideal
-   on paper) FAILED induction at 0.741 with a precise diagnosis chain: entity-LIST state →
-   order-sensitive validation (fixed via canonical ordering) → residual failure from the
-   stochastic spawned tile shifting canonical indices. **M4 blocker, well-defined:**
-   entity-matching (set-based) validation for set-valued game state.
+   on paper) FAILED induction through a three-round diagnosis chain, each round fixing a
+   real validator defect: entity-LIST state → order-sensitive validation (fixed: canonical
+   ordering) → spawn-shifted canonical indices (fixed: entity-matching/set-based scoring,
+   a perfect model now misses only the random spawn) → final verdict 0.747 with
+   entities=0.10 under SET comparison: the LLM genuinely hasn't learned the move dynamics.
+   **M4 leads, recorded:** (a) the 120ms key-hold may fire key-repeat, contaminating
+   transitions with multi-move dynamics (suspicious −3/−4 entity deltas on 11 of 240
+   presses); (b) nonstandard coordinate/direction conventions. The validator improvements
+   survive regardless.
 
 ---
 

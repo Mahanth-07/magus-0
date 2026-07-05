@@ -146,10 +146,14 @@ python -m ludus.cli duel <game> [--steps 15 --baseline gateway]
   persists `runs/duel-<game>.json` (milestone copies live in `docs/results/`).
 - Live status: grid duel planner 10–0 (vision baselines are structurally blind on synthetic
   games — fake PNGs — so only the harness mechanics are validated there); tetris duel refused
-  (FAILED model — the honesty gate working); 01_2048 induction FAILED 0.741 — canonical
-  entity ordering (`ludus/worldmodel/canonical.py`) fixed order-sensitivity, but the random
-  spawned tile still shifts canonical indices. M4 blocker: entity-matching (set-based)
-  validation for set-valued state.
+  (FAILED model — the honesty gate working); 01_2048 induction FAILED 0.747 after two real
+  validator fixes (canonical ordering, then entity-matching/set-based scoring in
+  `ludus/worldmodel/canonical.py` + `validate.py` — lists-of-dicts score by content
+  membership, entity count as a scalar stand-in). Final diagnosis: entities=0.10 under SET
+  comparison — the dynamics themselves are unlearned. M4 leads: 120ms key-hold may fire
+  key-repeat (multi-move transitions; −3/−4 entity deltas on 11/240 presses), or
+  nonstandard coordinate conventions. Tap-length exploration presses is the first thing
+  to try.
 
 ---
 

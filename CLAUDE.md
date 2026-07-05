@@ -285,3 +285,13 @@ overall floor 0.75 — calibrated by a measured perfect-model ceiling of
 4 rounds at primary 0.48) -> deadlock-aware planner tie-breaks
 (changes_state preferred on zero-reward ties). Remaining M4 scope: the
 34-game sweep, multi-game distillation (Stage 4), co-op (Stage 5).
+
+### Benchmark sweep (2026-07-05)
+
+Full 33-game sweep (scripts/sweep_benchmark.py, resumable, results in
+docs/results/sweep.jsonl + sweep-table.md): 12/33 INDUCED and dueled;
+planner beat zero-shot gemini-flash on 3 (01_2048 212-56, 10_doodle-jump,
+27_stack), lost 5, tied 4 (0-0 in 15 steps — retry longer). Failures:
+8 onboard, 6 explore, 7 induction — errors recorded per game. Next levers:
+duel-loss analysis on INDUCED games, longer duels for ties, mouse support
+for minesweeper-class explore failures.

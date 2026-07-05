@@ -85,3 +85,57 @@ def test_planner_context_state_text_round_trips():
 def test_planner_context_state_text_defaults_empty():
     ctx = PlannerContext(objective="o", legal_actions=["a"])
     assert ctx.state_text == ""
+
+
+# --- StepRecord.state_text (Stage 4 chunk 1) ---
+
+def test_step_record_state_text_defaults_empty():
+    from ludus.schemas import StepRecord
+    step = StepRecord(
+        episode_id="ep1", step_index=0, mode="baseline", game="tetris",
+        decision=Decision(
+            scene_summary="s", controlled_entity="c", current_subgoal="g",
+            action="left", expected_result="e", reason="r", confidence=0.5,
+        ),
+        primary_metric="score", primary_delta=0.0, improved=False,
+        metric_delta={"score": 0.0},
+    )
+    assert step.state_text == ""
+
+
+def test_step_record_state_text_round_trips():
+    from ludus.schemas import StepRecord
+    step = StepRecord(
+        episode_id="ep1", step_index=0, mode="baseline", game="tetris",
+        decision=Decision(
+            scene_summary="s", controlled_entity="c", current_subgoal="g",
+            action="left", expected_result="e", reason="r", confidence=0.5,
+        ),
+        primary_metric="score", primary_delta=2.0, improved=True,
+        metric_delta={"score": 2.0},
+        state_text="col heights: 1 2 0\nholes=0",
+    )
+    assert step.state_text == "col heights: 1 2 0\nholes=0"
+    # Must survive JSON round-trip (persistence path)
+    import json
+    data = json.loads(step.model_dump_json())
+    assert data["state_text"] == "col heights: 1 2 0\nholes=0"
+
+
+def test_step_record_old_records_without_state_text_still_valid():
+    """Old persisted step records without state_text must parse fine (additive field)."""
+    import json
+    from ludus.schemas import StepRecord
+    raw = {
+        "episode_id": "old-ep", "step_index": 0, "mode": "baseline", "game": "tetris",
+        "decision": {
+            "scene_summary": "s", "controlled_entity": "c", "current_subgoal": "g",
+            "action": "left", "actions": [], "action_args": {"duration_ms": 200},
+            "expected_result": "e", "reason": "r", "confidence": 0.5,
+        },
+        "primary_metric": "score", "primary_delta": 0.0, "improved": False,
+        "metric_delta": {"score": 0.0},
+        # NOTE: no "state_text" key — simulates old on-disk format
+    }
+    step = StepRecord.model_validate(raw)
+    assert step.state_text == ""

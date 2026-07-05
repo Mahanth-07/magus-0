@@ -143,6 +143,73 @@ class _FlakyProvider:
         )
 
 
+class _StateTextFakeGameWorld:
+    """FakeGameWorld variant that returns a non-empty state_text for testing."""
+
+    def __init__(self, metric_script, state_text_value="board: col heights 1 2 3"):
+        self._metrics = metric_script
+        self._i = 0
+        self.applied: list[dict] = []
+        self._state_text_value = state_text_value
+
+    def screenshot(self) -> bytes:
+        return b"\x89PNG fake-frame"
+
+    def metrics(self, keys):
+        m = self._metrics[min(self._i, len(self._metrics) - 1)]
+        return {k: m.get(k, 0.0) for k in keys}
+
+    def apply(self, command: dict) -> None:
+        self.applied.append(command)
+        self._i = min(self._i + 1, len(self._metrics) - 1)
+
+    def state_text(self) -> str:
+        return self._state_text_value
+
+
+def test_loop_persists_state_text_in_step_records(tmp_path):
+    """run_episode must capture ctx.state_text in the persisted StepRecord."""
+    import json
+
+    gw = _StateTextFakeGameWorld(
+        metric_script=[{"holes": 2.0}, {"holes": 2.0}, {"holes": 2.0}],
+        state_text_value="col heights: 1 2 0\nholes=0",
+    )
+    run_episode(
+        adapter=_TetrisLikeAdapter(),
+        provider=MockProvider(script=["left"]),
+        gameworld=gw,
+        store=LocalStore(root=tmp_path),
+        rulebook=Rulebook(),
+        mode="baseline",
+        max_steps=1,
+        episode_id="ep-state-text",
+    )
+    lines = (tmp_path / "ep-state-text" / "steps.jsonl").read_text().splitlines()
+    step = json.loads(lines[0])
+    assert step["state_text"] == "col heights: 1 2 0\nholes=0"
+
+
+def test_loop_persists_empty_state_text_when_gameworld_returns_empty(tmp_path):
+    """When state_text() returns '', StepRecord.state_text should be ''."""
+    import json
+
+    gw = FakeGameWorld(metric_script=[{"holes": 2.0}, {"holes": 2.0}])
+    run_episode(
+        adapter=_TetrisLikeAdapter(),
+        provider=MockProvider(script=["left"]),
+        gameworld=gw,
+        store=LocalStore(root=tmp_path),
+        rulebook=Rulebook(),
+        mode="baseline",
+        max_steps=1,
+        episode_id="ep-no-state-text",
+    )
+    lines = (tmp_path / "ep-no-state-text" / "steps.jsonl").read_text().splitlines()
+    step = json.loads(lines[0])
+    assert step["state_text"] == ""
+
+
 def test_loop_survives_transient_decide_failure(tmp_path):
     # One failed decide() must NOT crash the episode: it's skipped, counted, and
     # excluded from the legal-action denominator.

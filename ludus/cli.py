@@ -95,6 +95,7 @@ def cmd_induce(game: str, profile_path=None, data_dir="data",
                                 max_iterations=max_iterations)
     print(f"induction {result.status} after {result.iterations} iteration(s): "
           f"holdout accuracy {result.report.overall:.3f} "
+          f"(primary_score {result.report.primary_accuracy:.2f}) "
           f"({result.report.n_cases} cases) -> {result.model_path}")
     worst = sorted(result.report.per_field.items(), key=lambda kv: kv[1])[:5]
     for path, acc in worst:

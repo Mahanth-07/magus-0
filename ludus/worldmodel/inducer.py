@@ -197,9 +197,11 @@ def induce_world_model(
             continue
         # repair signal from TRAIN; the gate below requires BOTH splits to pass
         train_report = validate_model(source, train, important_paths=important,
-                                      threshold=threshold)
+                                      threshold=threshold,
+                                      primary_metric=profile.primary_metric)
         report = validate_model(source, holdout, important_paths=important,
-                                threshold=threshold)
+                                threshold=threshold,
+                                primary_metric=profile.primary_metric)
         if train_report.passed and report.passed:
             break
         counterexamples = train_report.counterexamples
@@ -211,6 +213,9 @@ def induce_world_model(
     (model_dir / "report.json").write_text(json.dumps({
         "status": status, "overall": report.overall,
         "train_overall": train_report.overall,
+        "primary_accuracy": report.primary_accuracy,
+        "train_primary_accuracy": train_report.primary_accuracy,
+        "overall_floor": 0.75,
         "per_field": report.per_field, "n_cases": report.n_cases,
         "iterations": iterations, "threshold": threshold,
         "train_size": len(train), "holdout_size": len(holdout),

@@ -36,8 +36,12 @@ def predict(state, action):
 '''
 
 BROKEN_MODEL = '''
+import copy
+
 def predict(state, action):
-    return state   # never changes anything
+    out = copy.deepcopy(state)
+    out["metrics"]["score"] = -1   # always wrong: primary gate reliably fails
+    return out
 '''
 
 

@@ -272,3 +272,16 @@ Loops tetris + wolf3d × baseline + memory, 12 steps each, with `--provider fall
 - `_load_dotenv` never overrides already-set env vars — inline `NEBIUS_*=... python -m ludus.cli ...` wins over `.env` (this is how the local-ollama student is selected without editing `.env`).
 - **Nebius LoRA:** training works, serving does not (empty support list). Never set `NEBIUS_MODEL` to a `file-...` id. See "Serving the student" above for the local ollama path.
 - Nebius `GET /files/{id}/content` redirects to S3 — use `curl -L` or you get 0-byte files.
+
+### M4 status (2026-07-05)
+
+THE MILESTONE: planner 212 vs gemini-2.5-flash 56 on live 01_2048 (15 steps,
+legal 1.00 both — docs/results/duel-01_2048.json). Chain: reset-safe
+second-chance probing (RESET_EFFECT_FRACTION excludes reset-like keys from
+scrambling) -> tap-press exploration (--duration-ms) -> grid-view synthesis
+prompts -> dual-gate validation (primary-metric accuracy strict at 0.9,
+overall floor 0.75 — calibrated by a measured perfect-model ceiling of
+0.809) -> opus synthesis (LUDUS_SYNTH_MODEL=claude-opus-4-8; sonnet failed
+4 rounds at primary 0.48) -> deadlock-aware planner tie-breaks
+(changes_state preferred on zero-reward ties). Remaining M4 scope: the
+34-game sweep, multi-game distillation (Stage 4), co-op (Stage 5).

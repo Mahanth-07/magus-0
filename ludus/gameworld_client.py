@@ -82,6 +82,8 @@ def _tetris_state_text(state: dict) -> str:
     board grid (e.g. non-Tetris game, or a loading state), making it a safe no-op.
     """
     env = _get_nested(state, "game_state.environment") or {}
+    if not isinstance(env, dict):
+        return ""
     board = env.get("board")
     if not (isinstance(board, list) and board and isinstance(board[0], list)):
         return ""

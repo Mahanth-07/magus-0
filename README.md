@@ -220,6 +220,18 @@ A/B eval: student 1022 vs gemini-2.5-flash 466 (live, 15 steps) ✅
    transitions with multi-move dynamics (suspicious −3/−4 entity deltas on 11 of 240
    presses); (b) nonstandard coordinate/direction conventions. The validator improvements
    survive regardless.
+   **M4: ✅ THE MILESTONE — planner beats a zero-shot frontier VLM on a real game.**
+   `01_2048` duel: **planner 212 vs gemini-2.5-flash 56** (same 15-step budget, legal rate
+   1.00 both sides, `docs/results/duel-01_2048.json`). Fully autonomous chain: onboard
+   (all controls, ArrowRight recovered via reset-safe second-chance probing) → explore
+   (240 tap-press transitions — key-repeat was falsified as a cause; a reference
+   implementation matching 165/165 transitions proved the game textbook) → induce
+   (claude-opus synthesis, INDUCED in 2 iterations, reward fidelity 1.00 / overall 0.905
+   under the dual gate calibrated by the measured perfect-model ceiling of 0.809) →
+   beam-search planning with deadlock-aware tie-breaks (zero-reward ties prefer
+   board-changing moves — the frozen-no-op deadlock cost an earlier duel 4–60). Every
+   fix in the chain came from a diagnosed live failure; the losses are recorded next to
+   the win.
 
 ---
 

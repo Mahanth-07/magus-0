@@ -2,89 +2,104 @@ import copy
 import math
 
 def predict(state, action):
-    s = copy.deepcopy(state)
-    
-    if action == 'use_space':
-        # Reset action - new random board state, cannot predict
-        # Return state unchanged (unpredictable random spawn)
-        return s
-    
-    gs = s['game_state']
-    board = gs['environment']
-    size = 4
-    
-    def slide_and_merge_left(row):
-        tiles = [x for x in row if x != 0]
-        merged = []
-        skip = False
-        score_gain = 0
-        for i in range(len(tiles)):
-            if skip:
-                skip = False
-                continue
-            if i + 1 < len(tiles) and tiles[i] == tiles[i+1]:
-                val = tiles[i] * 2
-                merged.append(val)
-                score_gain += val
-                skip = True
+    ns = copy.deepcopy(state)
+    gs = ns["game_state"]
+    env = gs["environment"]
+    N = len(env)
+    m = ns["metrics"]
+
+    if action == "use_space":
+        # reset: deterministic scalar fields, random spawns unpredictable
+        gs["score"] = 0
+        gs["level"] = 2
+        gs["completion_progress"] = math.log2(2) / 11
+        m["primary_score"] = 0
+        m["max_tile"] = 2
+        m["filled_cells"] = 2
+        m["board_fill_ratio"] = 2 / (N * N)
+        return ns
+
+    if action not in ("use_arrowleft", "use_arrowright", "use_arrowup", "use_arrowdown"):
+        return ns
+
+    # environment is indexed env[x][y]
+    orig = [[env[x][y] for y in range(N)] for x in range(N)]
+    grid = [[env[x][y] for y in range(N)] for x in range(N)]
+
+    score_gain = 0
+
+    def slide_line(line):
+        nonlocal score_gain
+        vals = [v for v in line if v != 0]
+        res = []
+        i = 0
+        while i < len(vals):
+            if i + 1 < len(vals) and vals[i] == vals[i + 1]:
+                merged = vals[i] * 2
+                res.append(merged)
+                score_gain += merged
+                i += 2
             else:
-                merged.append(tiles[i])
-        while len(merged) < len(row):
-            merged.append(0)
-        return merged, score_gain
-    
-    total_score_gain = 0
-    
-    if action == 'use_arrowleft':
-        new_board = []
-        for r in range(size):
-            row, gain = slide_and_merge_left(board[r])
-            new_board.append(row)
-            total_score_gain += gain
-        gs['environment'] = new_board
-    
-    elif action == 'use_arrowdown':
-        new_board = [row[:] for row in board]
-        for c in range(size):
-            col = [board[r][c] for r in range(size)]
-            col_rev, gain = slide_and_merge_left(col[::-1])
-            col_result = col_rev[::-1]
-            total_score_gain += gain
-            for r in range(size):
-                new_board[r][c] = col_result[r]
-        gs['environment'] = new_board
-    else:
-        return s
-    
-    gs['score'] += total_score_gain
-    s['metrics']['primary_score'] = gs['score']
-    
-    filled = 0
-    max_tile = 0
-    for r in range(size):
-        for c in range(size):
-            v = gs['environment'][r][c]
-            if v != 0:
-                filled += 1
-                if v > max_tile:
-                    max_tile = v
-    
-    s['metrics']['filled_cells'] = filled
-    s['metrics']['board_fill_ratio'] = filled / 16
-    s['metrics']['max_tile'] = max_tile
-    
-    if max_tile >= 2:
-        log_val = math.log2(max_tile)
-        gs['level'] = int(log_val) * 2
-        gs['completion_progress'] = log_val / 11
-    
-    # Build entities: x=row, y=col
+                res.append(vals[i])
+                i += 1
+        while len(res) < len(line):
+            res.append(0)
+        return res
+
+    if action == "use_arrowleft":  # slide toward x=0
+        for y in range(N):
+            line = [grid[x][y] for x in range(N)]
+            line = slide_line(line)
+            for x in range(N):
+                grid[x][y] = line[x]
+    elif action == "use_arrowright":  # slide toward x=N-1
+        for y in range(N):
+            line = [grid[x][y] for x in range(N)]
+            line = list(reversed(slide_line(list(reversed(line)))))
+            for x in range(N):
+                grid[x][y] = line[x]
+    elif action == "use_arrowup":  # slide toward y=0
+        for x in range(N):
+            line = grid[x][:]
+            line = slide_line(line)
+            grid[x] = line
+    elif action == "use_arrowdown":  # slide toward y=N-1
+        for x in range(N):
+            line = grid[x][:]
+            line = list(reversed(slide_line(list(reversed(line)))))
+            grid[x] = line
+
+    # write back
+    for x in range(N):
+        for y in range(N):
+            env[x][y] = grid[x][y]
+
+    gs["score"] = gs.get("score", 0) + score_gain
+
+    # rebuild deterministic tile entities (omit random spawn)
     entities = []
-    for r in range(size):
-        for c in range(size):
-            v = gs['environment'][r][c]
-            if v != 0:
-                entities.append({'type': 'tile', 'x': r, 'y': c, 'props': {'value': v}})
-    gs['entities'] = entities
-    
-    return s
+    for x in range(N):
+        for y in range(N):
+            if grid[x][y] != 0:
+                entities.append({
+                    "type": "tile",
+                    "x": x,
+                    "y": y,
+                    "props": {"value": grid[x][y]}
+                })
+    gs["entities"] = entities
+
+    filled = sum(1 for x in range(N) for y in range(N) if grid[x][y] != 0)
+    max_tile = max((grid[x][y] for x in range(N) for y in range(N)), default=0)
+    total = N * N
+
+    m["primary_score"] = gs["score"]
+    m["max_tile"] = max_tile
+    m["filled_cells"] = filled
+    m["total_cells"] = total
+    m["board_fill_ratio"] = filled / total
+
+    gs["level"] = max_tile
+    gs["completion_progress"] = math.log2(max_tile) / 11 if max_tile > 0 else 0.0
+
+    return ns

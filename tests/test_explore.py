@@ -52,6 +52,29 @@ def test_explore_deterministic_for_seed(tmp_path):
     assert a == b
 
 
+def test_explore_duration_override(tmp_path):
+    # turn-based games need TAP presses: key-repeat during a long hold makes
+    # one press execute multiple moves, corrupting induction transitions
+    class DurationRecorder(GridWorldGame):
+        durations = []
+
+        def apply(self, command):
+            DurationRecorder.durations.append(command["duration_ms"])
+            super().apply(command)
+
+    DurationRecorder.durations = []
+    store = TransitionStore(tmp_path / "t.jsonl")
+    explore_game(_grid_profile(), DurationRecorder, store=store,
+                 episodes=1, steps_per_episode=3, seed=1, duration_ms=30)
+    assert DurationRecorder.durations == [30, 30, 30]
+
+    DurationRecorder.durations = []
+    store2 = TransitionStore(tmp_path / "t2.jsonl")
+    explore_game(_grid_profile(), DurationRecorder, store=store2,
+                 episodes=1, steps_per_episode=2, seed=1)
+    assert DurationRecorder.durations == [50, 50]   # profile.timing_ms default
+
+
 def test_explore_ends_episode_on_terminal(tmp_path):
     # add the quit key as a "control": pressing it ends the episode early;
     # the explorer must record terminal_after=True and start a fresh episode.

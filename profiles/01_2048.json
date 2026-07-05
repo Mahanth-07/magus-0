@@ -2,37 +2,66 @@
   "game_id": "01_2048",
   "controls": {
     "use_arrowleft": "ArrowLeft",
+    "use_arrowright": "ArrowRight",
+    "use_arrowup": "ArrowUp",
     "use_arrowdown": "ArrowDown",
     "use_space": "Space"
   },
   "control_effects": {
     "use_arrowleft": [
+      "game_state.entities[0].props.value",
+      "game_state.entities[1].props.value",
+      "game_state.entities[1].y",
+      "game_state.entities[2].props.value",
       "game_state.entities[2].x",
       "game_state.entities[2].y",
-      "game_state.environment[0][0]",
-      "game_state.environment[0][2]",
+      "game_state.environment[2][0]",
+      "game_state.environment[2][2]",
+      "metrics.board_fill_ratio",
+      "metrics.filled_cells"
+    ],
+    "use_arrowright": [
+      "game_state.entities[0].x",
+      "game_state.entities[0].y",
+      "game_state.entities[1].x",
+      "game_state.entities[1].y",
+      "game_state.entities[2].y",
+      "game_state.entities[3].props.value",
+      "game_state.entities[3].y",
+      "game_state.entities[4].y",
+      "game_state.environment[0][3]",
+      "game_state.environment[2][2]",
       "game_state.environment[3][2]",
+      "metrics.board_fill_ratio",
+      "metrics.filled_cells"
+    ],
+    "use_arrowup": [
+      "game_state.entities[1].y",
+      "game_state.entities[2].y",
+      "game_state.environment[1][0]",
+      "game_state.environment[1][2]",
+      "game_state.environment[2][0]",
+      "game_state.environment[2][1]",
       "game_state.score",
       "metrics.primary_score"
     ],
     "use_arrowdown": [
-      "game_state.entities[0].y",
       "game_state.entities[1].props.value",
-      "game_state.entities[1].x",
-      "game_state.entities[2].y",
-      "game_state.entities[3].props.value",
       "game_state.entities[3].y",
-      "game_state.entities[4].props.value",
       "game_state.entities[4].y",
       "game_state.entities[5].props.value",
       "game_state.entities[5].y",
-      "game_state.environment[1][1]",
-      "game_state.environment[1][3]",
+      "game_state.environment[0][3]",
       "metrics.board_fill_ratio",
       "metrics.filled_cells"
     ],
     "use_space": [
+      "game_state.entities[0].x",
+      "game_state.entities[0].y",
+      "game_state.entities[1].x",
       "game_state.entities[1].y",
+      "game_state.environment[0][0]",
+      "game_state.environment[1][2]",
       "game_state.environment[3][0]",
       "game_state.environment[3][1]"
     ]
@@ -47,7 +76,7 @@
   "primary_metric": "primary_score",
   "higher_is_better": true,
   "timing_ms": 120,
-  "objective": "You are playing 01_2048. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowdown (ArrowDown), use_space (Space). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "objective": "You are playing 01_2048. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowright (ArrowRight), use_arrowup (ArrowUp), use_arrowdown (ArrowDown), use_space (Space). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
   "state_schema": {
     "schemaVersion": "str",
     "gameId": "str",

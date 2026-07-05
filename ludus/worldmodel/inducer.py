@@ -23,6 +23,29 @@ from ludus.worldmodel.validate import ValidationReport, validate_model
 
 MAX_PROMPT_TRANSITIONS = 30
 MAX_FULL_STATES = 2
+GRID_VIEW_TRANSITIONS = 10
+
+
+def render_grid(state: dict) -> str:
+    """ASCII grid view of game_state.entities when they carry small integer
+    x/y coords (board games: 2048 tiles, minesweeper cells). Cell label =
+    props.value if present, else first letter of type. "" when the state has
+    no such entities (graceful no-op for non-grid games)."""
+    ents = (state.get("game_state") or {}).get("entities")
+    if not isinstance(ents, list) or not ents:
+        return ""
+    if not all(isinstance(e, dict) and isinstance(e.get("x"), int)
+               and isinstance(e.get("y"), int) for e in ents):
+        return ""
+    xs = [e["x"] for e in ents]
+    ys = [e["y"] for e in ents]
+    if min(xs) < 0 or min(ys) < 0 or max(xs) > 15 or max(ys) > 15:
+        return ""
+    grid = [["." for _ in range(max(xs) + 1)] for _ in range(max(ys) + 1)]
+    for e in ents:
+        v = (e.get("props") or {}).get("value")
+        grid[e["y"]][e["x"]] = str(v) if v is not None else str(e.get("type", "?"))[:1]
+    return "\n".join(" ".join(f"{c:>4}" for c in row) for row in grid)
 
 
 @dataclass
@@ -104,6 +127,19 @@ def build_synthesis_prompt(
     lines.append("Observed transitions (flattened changed fields, (before, after)):")
     for t in sample:
         lines.append("  " + _render_transition(t))
+    grid_pairs = [(t, render_grid(canonicalize(t.before)), render_grid(canonicalize(t.after)))
+                  for t in sample[:GRID_VIEW_TRANSITIONS]]
+    grid_pairs = [(t, gb, ga) for (t, gb, ga) in grid_pairs if gb and ga]
+    if grid_pairs:
+        lines.append("")
+        lines.append("Board views (rows are y=0..N top-to-bottom, columns x=0..N "
+                     "left-to-right; '.' = empty):")
+        for t, gb, ga in grid_pairs:
+            lines.append(f"--- action={t.action!r} ---")
+            lines.append("before:")
+            lines.append(gb)
+            lines.append("after:")
+            lines.append(ga)
     if counterexamples:
         lines.append("")
         lines.append("YOUR PREVIOUS ATTEMPT was wrong on these observed "

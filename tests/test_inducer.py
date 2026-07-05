@@ -183,6 +183,38 @@ def test_prompt_sample_prioritizes_metric_changing_transitions():
     assert "collect" in user, "metric-changing transition must reach the prompt"
 
 
+def test_render_grid_shows_tile_values():
+    from ludus.worldmodel.inducer import render_grid
+    state = {"game_state": {"entities": [
+        {"type": "tile", "x": 0, "y": 0, "props": {"value": 2}},
+        {"type": "tile", "x": 3, "y": 1, "props": {"value": 4}},
+    ]}}
+    grid = render_grid(state)
+    rows = grid.splitlines()
+    assert len(rows) == 2                 # max y = 1
+    assert "2" in rows[0] and "4" in rows[1]
+    assert "." in rows[0]
+
+
+def test_render_grid_noop_for_non_grid_states():
+    from ludus.worldmodel.inducer import render_grid
+    assert render_grid({"game_state": {"player": {"x": 1}}}) == ""
+    assert render_grid({"game_state": {"entities": [{"x": 0.5, "y": 1}]}}) == ""
+
+
+def test_prompt_includes_board_views_for_entity_grid_games():
+    from ludus.worldmodel.inducer import build_synthesis_prompt
+    from ludus.worldmodel.transitions import Transition
+    ents = lambda *vals: [{"type": "tile", "x": i, "y": 0, "props": {"value": v}}
+                          for i, v in enumerate(vals)]
+    t = Transition(game_id="g", episode_id="e", step=0, action="left", key="L",
+                   before={"metrics": {"score": 0}, "game_state": {"entities": ents(2, 2)}},
+                   after={"metrics": {"score": 4}, "game_state": {"entities": ents(4)}})
+    _, user = build_synthesis_prompt("g", _grid_profile(), [t], [], "")
+    assert "Board views" in user
+    assert "before:" in user and "after:" in user
+
+
 def test_gate_requires_train_pass_too_rare_event_only_in_train(tmp_path):
     # Live-acceptance regression: a rare mechanic (score jump) observed ONLY
     # in train episodes must block INDUCED even when holdout passes cleanly.

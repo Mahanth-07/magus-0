@@ -53,6 +53,7 @@ class ProbeReport:
     ambient_paths: list[str] = field(default_factory=list)
     relaunches: int = 0
     apply_errors: int = 0
+    second_chance: list[str] = field(default_factory=list)         # keys recovered via scramble
 
 
 def _status(state: dict) -> str:
@@ -95,6 +96,19 @@ class ControlProber:
                 if effects:
                     key_effects[key] = effects
 
+            # Keys with no observed effect get a second chance from a scrambled
+            # state: situational no-ops (2048's ArrowRight on a right-packed
+            # board) are invisible from the spawn state (live duel finding).
+            effective = [k for k in self._keys if k in key_effects]
+            retry = [k for k in self._keys if k not in key_effects]
+            if effective and retry:
+                for key in retry:
+                    client = self._scramble(client, effective, report)
+                    client, effects = self._probe_key(client, key, ambient, report)
+                    if effects:
+                        key_effects[key] = effects
+                        report.second_chance.append(key)
+
             self._name_controls(key_effects, report)
             return report
         finally:
@@ -108,6 +122,18 @@ class ControlProber:
             client.close()
         report.relaunches += 1
         return self._factory()
+
+    def _scramble(self, client, effective_keys: list[str], report: ProbeReport):
+        """Move the game into a different state using known-effective keys."""
+        for k in effective_keys:
+            if _status(client.raw_state()) != "playing":
+                client = self._relaunch(client, report)
+            try:
+                client.apply({"key": k, "duration_ms": self._duration_ms})
+            except Exception as exc:
+                report.apply_errors += 1
+                log.warning("scramble apply(%r) failed (%s)", k, exc)
+        return client
 
     def _ambient_baseline(self, client, report: ProbeReport):
         """Paths that change with NO input across `repeats` PRESS-SIZED windows.

@@ -117,6 +117,29 @@ class AutoRunnerGame(_SyntheticBase):
         }
 
 
+class WallGame(_SyntheticBase):
+    """Second-chance probing repro: the player spawns AT the right wall
+    (x=4), so ArrowRight is a no-op from the spawn state — exactly like
+    2048's situational no-op arrows. After any ArrowLeft, ArrowRight works."""
+
+    def __init__(self) -> None:
+        self.x = 4
+        self.steps = 0
+
+    def apply(self, command: dict) -> None:
+        self.steps += 1
+        key = command.get("key")
+        if key == "ArrowLeft":
+            self.x = max(0, self.x - 1)
+        elif key == "ArrowRight":
+            self.x = min(4, self.x + 1)
+
+    def raw_state(self) -> dict:
+        return {"status": "playing",
+                "metrics": {"score": 0, "steps": self.steps},
+                "game_state": {"player": {"x": self.x, "y": 0}}}
+
+
 class CounterGame(_SyntheticBase):
     """'x' increments score. 'z' costs 10 health (floor 0 = terminal).
     Arrows do nothing. Every apply() ticks `steps`."""

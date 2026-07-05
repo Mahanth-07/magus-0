@@ -52,3 +52,25 @@ def test_apply_exception_skips_press_not_probe():
     assert report.controls.get("move_right") == "ArrowRight"
     assert report.controls.get("move_left") == "ArrowLeft"
     assert report.apply_errors == 1
+
+
+def test_second_chance_recovers_situational_noop_keys():
+    from ludus.synthetic import WallGame
+    # probe order matters: ArrowRight FIRST (no-op at the wall), ArrowLeft
+    # second (works) -> first pass drops ArrowRight; second chance scrambles
+    # with ArrowLeft and recovers it.
+    report = ControlProber(WallGame, probe_keys=["ArrowRight", "ArrowLeft"],
+                           ambient_window_s=0.0).probe()
+    assert report.controls.get("move_left") == "ArrowLeft"
+    assert report.controls.get("move_right") == "ArrowRight"
+    assert report.second_chance == ["ArrowRight"]
+
+
+def test_second_chance_skipped_when_nothing_effective():
+    # CounterGame arrows are ALWAYS no-ops; with no effective keys there is
+    # no scrambler, so no second chance and no infinite retry.
+    from ludus.synthetic import CounterGame
+    report = ControlProber(CounterGame, probe_keys=["ArrowLeft", "ArrowRight"],
+                           ambient_window_s=0.0).probe()
+    assert report.controls == {}
+    assert report.second_chance == []

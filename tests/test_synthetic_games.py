@@ -1,7 +1,7 @@
 # tests/test_synthetic_games.py
 """Synthetic games — deterministic ground truth for onboarding tests."""
 
-from ludus.synthetic import CounterGame, GridWorldGame
+from ludus.synthetic import CounterGame, GridWorldGame, WallGame
 
 
 def _press(game, key):
@@ -128,3 +128,15 @@ def test_synthetic_games_speak_the_client_interface():
 def test_synthetic_games_expose_state_text():
     for g in (GridWorldGame(), CounterGame()):
         assert g.state_text() == ""
+
+
+# --- WallGame ----------------------------------------------------------------
+
+def test_wallgame_right_is_noop_at_wall_until_left():
+    g = WallGame()
+    _press(g, "ArrowRight")
+    assert g.raw_state()["game_state"]["player"]["x"] == 4
+    _press(g, "ArrowLeft")
+    assert g.raw_state()["game_state"]["player"]["x"] == 3
+    _press(g, "ArrowRight")
+    assert g.raw_state()["game_state"]["player"]["x"] == 4

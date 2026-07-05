@@ -87,6 +87,7 @@ def run_episode(
             decision=decision, primary_metric=outcome.primary_metric,
             primary_delta=outcome.primary_delta, improved=outcome.improved,
             metric_delta=outcome.delta, rule_added=rule_added, screenshot_ref=ref,
+            state_text=ctx.state_text,
         ))
         recent_outcomes.append(f"{decision.action} -> {outcome.summary}")
 

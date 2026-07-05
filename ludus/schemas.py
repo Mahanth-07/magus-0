@@ -43,6 +43,7 @@ class StepRecord(BaseModel):
     metric_delta: dict[str, float]
     rule_added: str | None = None
     screenshot_ref: str | None = None
+    state_text: str = ""
 
 
 class EpisodeResult(BaseModel):

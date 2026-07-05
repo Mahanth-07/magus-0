@@ -14,6 +14,7 @@ beats the same reward later), then lexicographic for determinism.
 
 from __future__ import annotations
 
+from ludus.worldmodel.canonical import canonicalize
 from ludus.worldmodel.sandbox import run_predictions
 
 
@@ -36,14 +37,22 @@ def rank_macros(
 ) -> list[dict]:
     """Rank action macros (length 1..depth) by predicted cumulative reward.
 
-    Returns [{"actions": [...], "predicted_reward": float}, ...] best-first;
+    Returns [{"actions": [...], "predicted_reward": float,
+              "changes_state": bool}, ...] best-first;
     [] if the model can't predict anything (broken/hanging source).
+
+    Tie-break order: reward desc → changes_state first → shorter macro →
+    lexicographic.  The changes_state secondary key breaks the jammed-board
+    deadlock (all rewards predict 0; a macro that moves a tile beats a pure
+    no-op → board change → spawn → future opportunities).
     """
     sign = 1.0 if higher_is_better else -1.0
     actions = sorted(actions)
+    root_canonical = canonicalize(state)
     # beams: (state, macro, cum_reward)
     beams: list[tuple[dict, list[str], float]] = [(state, [], 0.0)]
-    scored: dict[tuple[str, ...], float] = {}
+    # scored: macro_tuple -> (cum_reward, changes_state)
+    scored: dict[tuple[str, ...], tuple[float, bool]] = {}
 
     for _ in range(depth):
         if not beams:
@@ -63,12 +72,15 @@ def rank_macros(
                 reward = cum + sign * (_metric(pred, primary_metric)
                                        - _metric(s, primary_metric))
                 new_macro = macro + [a]
-                scored[tuple(new_macro)] = reward
+                changes = canonicalize(pred) != root_canonical
+                scored[tuple(new_macro)] = (reward, changes)
                 if str(pred.get("status", "playing")) == "playing":
                     next_beams.append((pred, new_macro, reward))
         next_beams.sort(key=lambda b: (-b[2], len(b[1]), b[1]))
         beams = next_beams[:beam]
 
-    ranked = sorted(scored.items(), key=lambda kv: (-kv[1], len(kv[0]), kv[0]))
-    return [{"actions": list(macro), "predicted_reward": reward}
-            for macro, reward in ranked[:top_k]]
+    ranked = sorted(scored.items(),
+                    key=lambda kv: (-kv[1][0], not kv[1][1], len(kv[0]), kv[0]))
+    return [{"actions": list(macro), "predicted_reward": reward,
+             "changes_state": changes}
+            for macro, (reward, changes) in ranked[:top_k]]

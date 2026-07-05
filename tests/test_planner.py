@@ -77,6 +77,28 @@ def test_broken_model_returns_empty():
     assert ranked == []
 
 
+def test_zero_reward_ties_prefer_state_changing_macros():
+    # jammed-board scenario: "noop" leaves the state identical, "shift"
+    # moves an entity but scores nothing. The planner must prefer shift —
+    # frozen no-ops caused the live 2048 deadlock (score 4 vs VLM 72).
+    model = '''
+import copy
+
+def predict(state, action):
+    out = copy.deepcopy(state)
+    if action == "shift":
+        out["game_state"]["player"]["x"] += 1
+    return out
+'''
+    state = {"status": "playing", "metrics": {"score": 0, "steps": 0},
+             "game_state": {"player": {"x": 0, "y": 0}}}
+    ranked = rank_macros(model, state, ["noop", "shift"],
+                         primary_metric="score", higher_is_better=True,
+                         depth=2, beam=4, top_k=4)
+    assert ranked[0]["actions"][0] == "shift"
+    assert ranked[0]["changes_state"] is True
+
+
 def test_terminal_branches_are_not_expanded():
     dying_model = '''
 import copy

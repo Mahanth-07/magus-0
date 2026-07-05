@@ -30,6 +30,11 @@ from ludus.onboarding.diff import TICK_HINTS, diff_states, flatten_state, is_tic
 
 log = logging.getLogger("ludus.onboarding")
 
+# A key whose effect set covers this fraction or more of the state schema is
+# treated as a suspected reset / major-transition key (e.g. 2048's Space) and
+# excluded from the scramble list.  It remains a valid discovered control.
+RESET_EFFECT_FRACTION = 0.5
+
 # GameWorld games draw from a small key vocabulary (docs/DISCOVERY.md + the
 # three hand-written configs). Order matters: earlier keys claim semantic
 # names first on collision.
@@ -101,9 +106,12 @@ class ControlProber:
             # board) are invisible from the spawn state (live duel finding).
             effective = [k for k in self._keys if k in key_effects]
             retry = [k for k in self._keys if k not in key_effects]
-            if effective and retry:
+            n_paths = max(1, len(report.state_schema))
+            scramblers = [k for k in effective
+                          if len(key_effects[k]) < RESET_EFFECT_FRACTION * n_paths]
+            if scramblers and retry:
                 for key in retry:
-                    client = self._scramble(client, effective, report)
+                    client = self._scramble(client, scramblers, report)
                     client, effects = self._probe_key(client, key, ambient, report)
                     if effects:
                         key_effects[key] = effects

@@ -1,0 +1,57 @@
+{
+  "game_id": "11_edge-surf",
+  "controls": {
+    "use_space": "Space"
+  },
+  "control_effects": {
+    "use_space": [
+      "game_state.environment.session_state",
+      "is_actionable"
+    ]
+  },
+  "metrics": [
+    "attempts",
+    "boosts",
+    "distance",
+    "lives",
+    "primary_score",
+    "shields"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 11_edge-surf. Maximize primary_score. Available controls: use_space (Space). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "NoneType",
+    "game_state.player.x": "int",
+    "game_state.player.y": "int",
+    "game_state.environment.session_state": "str",
+    "game_state.environment.viewport.width": "int",
+    "game_state.environment.viewport.height": "int",
+    "game_state.environment.world_distance.x": "float",
+    "game_state.environment.world_distance.y": "float",
+    "game_state.environment.world_distance.unit": "float",
+    "game_state.completion_progress": "NoneType",
+    "game_state.mode": "str",
+    "metrics.primary_score": "int",
+    "metrics.lives": "int",
+    "metrics.distance": "float",
+    "metrics.attempts": "int",
+    "metrics.boosts": "int",
+    "metrics.shields": "int",
+    "debug.last_reset_method": "NoneType",
+    "debug.finish": "bool",
+    "debug.caught": "bool"
+  }
+}

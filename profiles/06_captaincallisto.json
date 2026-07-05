@@ -1,0 +1,112 @@
+{
+  "game_id": "06_captaincallisto",
+  "controls": {
+    "move_left": "ArrowLeft",
+    "move_right": "ArrowRight",
+    "move_right_arrowup": "ArrowUp",
+    "move_right_arrowdown": "ArrowDown",
+    "move_right_space": "Space",
+    "move_right_x": "x",
+    "move_right_z": "z",
+    "move_left_a": "a",
+    "move_right_d": "d",
+    "move_right_w": "w",
+    "move_right_s": "s"
+  },
+  "control_effects": {
+    "move_left": [
+      "game_state.player.x"
+    ],
+    "move_right": [
+      "game_state.player.x"
+    ],
+    "move_right_arrowup": [
+      "game_state.player.x",
+      "game_state.player.z"
+    ],
+    "move_right_arrowdown": [
+      "game_state.player.x",
+      "game_state.player.z"
+    ],
+    "move_right_space": [
+      "game_state.player.x",
+      "game_state.player.z"
+    ],
+    "move_right_x": [
+      "game_state.player.x",
+      "game_state.player.z"
+    ],
+    "move_right_z": [
+      "game_state.player.x",
+      "game_state.player.z"
+    ],
+    "move_left_a": [
+      "game_state.player.x"
+    ],
+    "move_right_d": [
+      "game_state.player.x"
+    ],
+    "move_right_w": [
+      "game_state.player.x",
+      "game_state.player.z"
+    ],
+    "move_right_s": [
+      "game_state.player.x",
+      "game_state.player.z"
+    ]
+  },
+  "metrics": [
+    "coins",
+    "coins_total",
+    "deaths",
+    "distance_to_goal",
+    "lives",
+    "primary_score"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 06_captaincallisto. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), move_right_arrowup (ArrowUp), move_right_arrowdown (ArrowDown), move_right_space (Space), move_right_x (x), move_right_z (z), move_left_a (a), move_right_d (d), move_right_w (w), move_right_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "int",
+    "game_state.player.x": "int",
+    "game_state.player.y": "float",
+    "game_state.player.z": "int",
+    "game_state.player.state": "str",
+    "game_state.player.alive": "bool",
+    "game_state.environment.exit_count": "int",
+    "game_state.environment.nearest_exit.x": "int",
+    "game_state.environment.nearest_exit.y": "int",
+    "game_state.environment.nearest_exit.z": "int",
+    "game_state.environment.nearest_exit.distance": "float",
+    "game_state.completion_progress": "int",
+    "game_state.entities[0].type": "str",
+    "game_state.entities[0].x": "int",
+    "game_state.entities[0].y": "int",
+    "game_state.entities[0].z": "int",
+    "metrics.primary_score": "int",
+    "metrics.coins": "int",
+    "metrics.coins_total": "int",
+    "metrics.lives": "int",
+    "metrics.deaths": "int",
+    "metrics.distance_to_goal": "float",
+    "debug.runtime_state": "int",
+    "debug.menu_state": "int",
+    "debug.requested_level": "NoneType",
+    "debug.query_level_target": "NoneType",
+    "debug.last_reset_method": "str",
+    "debug.world_object_count": "int",
+    "debug.ready": "bool"
+  }
+}

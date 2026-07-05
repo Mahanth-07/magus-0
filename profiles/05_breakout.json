@@ -3,6 +3,7 @@
   "controls": {
     "move_left": "ArrowLeft",
     "move_right": "ArrowRight",
+    "use_arrowup": "ArrowUp",
     "use_arrowdown": "ArrowDown",
     "use_space": "Space",
     "use_x": "x",
@@ -18,8 +19,17 @@
       "game_state.player.x"
     ],
     "move_right": [
+      "game_state.entities[0].vx",
+      "game_state.entities[0].vy",
       "game_state.entities[0].x",
+      "game_state.entities[0].y",
       "game_state.player.x"
+    ],
+    "use_arrowup": [
+      "game_state.entities[0].vx",
+      "game_state.entities[0].vy",
+      "game_state.entities[0].x",
+      "game_state.entities[0].y"
     ],
     "use_arrowdown": [
       "game_state.entities[0].vx",
@@ -28,8 +38,6 @@
       "game_state.entities[0].y"
     ],
     "use_space": [
-      "game_state.entities[0].vx",
-      "game_state.entities[0].vy",
       "game_state.entities[0].x",
       "game_state.entities[0].y"
     ],
@@ -69,7 +77,7 @@
   "primary_metric": "primary_score",
   "higher_is_better": true,
   "timing_ms": 120,
-  "objective": "You are playing 05_breakout. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), use_arrowdown (ArrowDown), use_space (Space), use_x (x), use_z (z), move_left_a (a), move_right_d (d), use_w (w), use_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "objective": "You are playing 05_breakout. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), use_arrowup (ArrowUp), use_arrowdown (ArrowDown), use_space (Space), use_x (x), use_z (z), move_left_a (a), move_right_d (d), use_w (w), use_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
   "state_schema": {
     "schemaVersion": "str",
     "gameId": "str",

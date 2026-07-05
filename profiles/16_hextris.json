@@ -1,0 +1,99 @@
+{
+  "game_id": "16_hextris",
+  "controls": {
+    "use_arrowleft": "ArrowLeft",
+    "use_arrowright": "ArrowRight",
+    "use_arrowup": "ArrowUp",
+    "use_arrowdown": "ArrowDown",
+    "use_space": "Space",
+    "use_x": "x",
+    "use_a": "a",
+    "use_d": "d",
+    "use_s": "s"
+  },
+  "control_effects": {
+    "use_arrowleft": [
+      "game_state.player.angle",
+      "game_state.player.lane_rotation",
+      "game_state.player.velocity"
+    ],
+    "use_arrowright": [
+      "game_state.player.angle",
+      "game_state.player.lane_rotation",
+      "game_state.player.velocity"
+    ],
+    "use_arrowup": [
+      "game_state.player.velocity"
+    ],
+    "use_arrowdown": [
+      "game_state.environment.settled_blocks"
+    ],
+    "use_space": [
+      "game_state.player.angle",
+      "game_state.player.lane_rotation",
+      "game_state.player.velocity"
+    ],
+    "use_x": [
+      "game_state.player.velocity"
+    ],
+    "use_a": [
+      "game_state.player.angle",
+      "game_state.player.lane_rotation"
+    ],
+    "use_d": [
+      "game_state.player.angle",
+      "game_state.player.lane_rotation"
+    ],
+    "use_s": [
+      "game_state.environment.highest_column_height",
+      "game_state.environment.settled_blocks"
+    ]
+  },
+  "metrics": [
+    "attempts",
+    "difficulty",
+    "distance",
+    "primary_score",
+    "score"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 16_hextris. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowright (ArrowRight), use_arrowup (ArrowUp), use_arrowdown (ArrowDown), use_space (Space), use_x (x), use_a (a), use_d (d), use_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "int",
+    "game_state.player.x": "int",
+    "game_state.player.y": "int",
+    "game_state.player.angle": "int",
+    "game_state.player.lane_rotation": "int",
+    "game_state.player.velocity": "int",
+    "game_state.environment.settled_blocks": "int",
+    "game_state.environment.highest_column_height": "int",
+    "game_state.environment.active_blocks": "int",
+    "game_state.completion_progress": "NoneType",
+    "metrics.primary_score": "int",
+    "metrics.attempts": "int",
+    "metrics.score": "int",
+    "metrics.distance": "int",
+    "metrics.best_score": "NoneType",
+    "metrics.difficulty": "int",
+    "debug.ready": "bool",
+    "debug.game_state": "int",
+    "debug.level_width": "float",
+    "debug.scale": "float",
+    "debug.paused": "bool",
+    "debug.importing": "int",
+    "debug.last_reset_method": "NoneType"
+  }
+}

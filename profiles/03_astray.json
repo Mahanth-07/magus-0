@@ -1,0 +1,156 @@
+{
+  "game_id": "03_astray",
+  "controls": {
+    "move_left": "ArrowLeft",
+    "move_right": "ArrowRight",
+    "move_left_arrowup": "ArrowUp",
+    "move_left_arrowdown": "ArrowDown",
+    "move_left_space": "Space",
+    "move_left_x": "x",
+    "move_left_z": "z",
+    "move_left_a": "a",
+    "move_right_d": "d",
+    "move_right_w": "w",
+    "move_right_s": "s"
+  },
+  "control_effects": {
+    "move_left": [
+      "game_state.player.vx",
+      "game_state.player.x",
+      "metrics.distance_to_goal"
+    ],
+    "move_right": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.x",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ],
+    "move_left_arrowup": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ],
+    "move_left_arrowdown": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ],
+    "move_left_space": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ],
+    "move_left_x": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ],
+    "move_left_z": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ],
+    "move_left_a": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ],
+    "move_right_d": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ],
+    "move_right_w": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ],
+    "move_right_s": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.vy",
+      "game_state.player.x",
+      "game_state.player.y",
+      "metrics.distance_to_goal",
+      "metrics.primary_score"
+    ]
+  },
+  "metrics": [
+    "distance_to_goal",
+    "primary_score"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 03_astray. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), move_left_arrowup (ArrowUp), move_left_arrowdown (ArrowDown), move_left_space (Space), move_left_x (x), move_left_z (z), move_left_a (a), move_right_d (d), move_right_w (w), move_right_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "NoneType",
+    "game_state.level": "int",
+    "game_state.player.x": "int",
+    "game_state.player.y": "int",
+    "game_state.player.z": "float",
+    "game_state.player.vx": "int",
+    "game_state.player.vy": "int",
+    "game_state.player.state": "str",
+    "game_state.player.props.radius": "float",
+    "game_state.environment.maze_dimension": "int",
+    "game_state.environment.exit.x": "int",
+    "game_state.environment.exit.y": "int",
+    "game_state.environment.exit.z": "int",
+    "game_state.completion_progress": "int",
+    "metrics.primary_score": "int",
+    "metrics.distance_to_goal": "float",
+    "debug.state": "str",
+    "debug.maze_dimension": "int",
+    "debug.max_distance_to_goal": "float",
+    "debug.key_axis[0]": "int",
+    "debug.key_axis[1]": "int",
+    "debug.requested_level": "NoneType",
+    "debug.requested_difficulty": "NoneType",
+    "debug.last_reset_method": "NoneType",
+    "debug.episode_count": "int"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "game_id": "07_chrome-dino",
+  "controls": {
+    "move_up": "ArrowUp",
+    "move_up_space": "Space"
+  },
+  "control_effects": {
+    "move_up": [
+      "debug.activated",
+      "game_state.player.is_jumping",
+      "game_state.player.state",
+      "game_state.player.vy",
+      "game_state.player.y",
+      "metrics.speed"
+    ],
+    "move_up_space": [
+      "debug.activated",
+      "game_state.player.is_jumping",
+      "game_state.player.state",
+      "game_state.player.vy",
+      "game_state.player.y",
+      "metrics.speed"
+    ]
+  },
+  "metrics": [
+    "attempts",
+    "distance",
+    "high_score",
+    "obstacles_visible",
+    "primary_score",
+    "speed"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 07_chrome-dino. Maximize primary_score. Available controls: move_up (ArrowUp), move_up_space (Space). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "NoneType",
+    "game_state.player.x": "int",
+    "game_state.player.y": "int",
+    "game_state.player.vy": "int",
+    "game_state.player.state": "str",
+    "game_state.player.is_jumping": "bool",
+    "game_state.player.is_ducking": "bool",
+    "game_state.environment.obstacle_count": "int",
+    "game_state.environment.intro_active": "bool",
+    "game_state.environment.next_obstacle": "NoneType",
+    "game_state.completion_progress": "NoneType",
+    "game_state.entities": "NoneType",
+    "metrics.primary_score": "int",
+    "metrics.distance": "int",
+    "metrics.attempts": "int",
+    "metrics.high_score": "int",
+    "metrics.speed": "int",
+    "metrics.obstacles_visible": "int",
+    "debug.crashed": "bool",
+    "debug.paused": "bool",
+    "debug.started": "bool",
+    "debug.activated": "bool",
+    "debug.playing_intro": "bool",
+    "debug.last_reset_method": "str"
+  }
+}

@@ -1,31 +1,32 @@
 {
   "game_id": "15_google-snake",
   "controls": {
-    "move_right": "ArrowLeft",
-    "move_right_arrowright": "ArrowRight",
-    "move_up": "ArrowDown",
+    "use_arrowleft": "ArrowLeft",
+    "use_arrowright": "ArrowRight",
+    "move_up": "ArrowUp",
+    "move_up_arrowdown": "ArrowDown",
     "move_up_space": "Space",
-    "move_right_z": "z",
-    "move_right_a": "a",
+    "move_up_x": "x",
+    "use_a": "a",
+    "use_d": "d",
     "move_up_w": "w",
     "move_up_s": "s"
   },
   "control_effects": {
-    "move_right": [
-      "game_state.entities[0].x",
-      "game_state.entities[1].x",
-      "game_state.entities[2].x",
-      "game_state.entities[3].x",
-      "game_state.player.x"
+    "use_arrowleft": [
+      "game_state.entities[2].y",
+      "game_state.entities[3].y",
+      "game_state.entities[4].y"
     ],
-    "move_right_arrowright": [
-      "game_state.entities[0].x",
-      "game_state.entities[1].x",
-      "game_state.entities[2].x",
-      "game_state.entities[3].x",
-      "game_state.player.x"
+    "use_arrowright": [
+      "game_state.entities[2].y",
+      "game_state.entities[3].y"
     ],
     "move_up": [
+      "game_state.entities[0].y",
+      "game_state.player.y"
+    ],
+    "move_up_arrowdown": [
       "game_state.entities[0].y",
       "game_state.entities[1].y",
       "game_state.entities[2].y",
@@ -38,32 +39,29 @@
       "game_state.entities[3].y",
       "game_state.player.y"
     ],
-    "move_right_z": [
-      "game_state.entities[0].x",
-      "game_state.entities[1].x",
-      "game_state.entities[2].x",
-      "game_state.entities[3].x",
-      "game_state.player.x"
+    "move_up_x": [
+      "game_state.entities[0].y",
+      "game_state.entities[1].y",
+      "game_state.entities[2].y",
+      "game_state.entities[3].y",
+      "game_state.player.y"
     ],
-    "move_right_a": [
-      "game_state.entities[0].x",
-      "game_state.entities[1].x",
-      "game_state.entities[2].x",
-      "game_state.entities[3].x",
-      "game_state.player.x"
+    "use_a": [
+      "game_state.entities[2].y",
+      "game_state.entities[3].y"
+    ],
+    "use_d": [
+      "game_state.entities[2].y",
+      "game_state.entities[3].y"
     ],
     "move_up_w": [
       "game_state.entities[0].y",
-      "game_state.entities[2].x",
-      "game_state.entities[3].x",
       "game_state.entities[4].x",
       "game_state.player.y"
     ],
     "move_up_s": [
       "game_state.entities[0].y",
       "game_state.entities[1].y",
-      "game_state.entities[2].y",
-      "game_state.entities[4].x",
       "game_state.player.y"
     ]
   },
@@ -79,7 +77,7 @@
   "primary_metric": "primary_score",
   "higher_is_better": true,
   "timing_ms": 120,
-  "objective": "You are playing 15_google-snake. Maximize primary_score. Available controls: move_right (ArrowLeft), move_right_arrowright (ArrowRight), move_up (ArrowDown), move_up_space (Space), move_right_z (z), move_right_a (a), move_up_w (w), move_up_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "objective": "You are playing 15_google-snake. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowright (ArrowRight), move_up (ArrowUp), move_up_arrowdown (ArrowDown), move_up_space (Space), move_up_x (x), use_a (a), use_d (d), move_up_w (w), move_up_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
   "state_schema": {
     "schemaVersion": "str",
     "gameId": "str",

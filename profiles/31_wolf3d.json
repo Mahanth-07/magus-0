@@ -1,0 +1,123 @@
+{
+  "game_id": "31_wolf3d",
+  "controls": {
+    "use_arrowleft": "ArrowLeft",
+    "use_arrowright": "ArrowRight",
+    "move_right": "ArrowUp",
+    "move_left": "ArrowDown",
+    "use_x": "x",
+    "use_z": "z",
+    "use_a": "a",
+    "use_d": "d",
+    "use_w": "w"
+  },
+  "control_effects": {
+    "use_arrowleft": [
+      "game_state.player.angle_deg"
+    ],
+    "use_arrowright": [
+      "game_state.player.angle_deg"
+    ],
+    "move_right": [
+      "game_state.environment.nearest_enemy.distance_tiles",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "move_left": [
+      "game_state.environment.nearest_enemy.distance_tiles",
+      "game_state.player.x",
+      "game_state.player.y"
+    ],
+    "use_x": [
+      "game_state.environment.nearest_enemy.distance_tiles"
+    ],
+    "use_z": [
+      "game_state.environment.nearest_enemy.state"
+    ],
+    "use_a": [
+      "game_state.environment.nearest_enemy.distance_tiles",
+      "game_state.environment.nearest_enemy.state"
+    ],
+    "use_d": [
+      "game_state.environment.nearest_enemy.distance_tiles"
+    ],
+    "use_w": [
+      "game_state.environment.nearest_enemy.state"
+    ]
+  },
+  "metrics": [
+    "ammo",
+    "deaths",
+    "health",
+    "kills",
+    "lives",
+    "max_kills",
+    "monsters_remaining",
+    "primary_score",
+    "score",
+    "total_monsters"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 31_wolf3d. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowright (ArrowRight), move_right (ArrowUp), move_left (ArrowDown), use_x (x), use_z (z), use_a (a), use_d (d), use_w (w). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "str",
+    "game_state.player.x": "float",
+    "game_state.player.y": "float",
+    "game_state.player.tile_x": "int",
+    "game_state.player.tile_y": "int",
+    "game_state.player.angle_deg": "int",
+    "game_state.player.health": "int",
+    "game_state.player.ammo": "int",
+    "game_state.player.lives": "int",
+    "game_state.player.weapon": "str",
+    "game_state.player.gold_key": "bool",
+    "game_state.player.silver_key": "bool",
+    "game_state.player.playstate": "str",
+    "game_state.environment.episode": "int",
+    "game_state.environment.level_index": "int",
+    "game_state.environment.floor_label": "str",
+    "game_state.environment.nearest_enemy.type": "str",
+    "game_state.environment.nearest_enemy.state": "str",
+    "game_state.environment.nearest_enemy.distance_tiles": "float",
+    "game_state.environment.nearest_enemy.tile_x": "int",
+    "game_state.environment.nearest_enemy.tile_y": "int",
+    "game_state.completion_progress": "int",
+    "metrics.primary_score": "int",
+    "metrics.kills": "int",
+    "metrics.max_kills": "int",
+    "metrics.total_monsters": "int",
+    "metrics.monsters_remaining": "int",
+    "metrics.health": "int",
+    "metrics.ammo": "int",
+    "metrics.lives": "int",
+    "metrics.score": "int",
+    "metrics.deaths": "int",
+    "debug.game_present": "bool",
+    "debug.wolf_playing": "bool",
+    "debug.menu_visible": "bool",
+    "debug.renderer_visible": "bool",
+    "debug.pause_visible": "bool",
+    "debug.intermission_visible": "bool",
+    "debug.gameover_visible": "bool",
+    "debug.loading_visible": "bool",
+    "debug.player_playstate": "str",
+    "debug.requested_level": "NoneType",
+    "debug.requested_difficulty": "NoneType",
+    "debug.episode_count": "int",
+    "debug.last_reset_method": "NoneType",
+    "debug.completion_progress_basis": "str"
+  }
+}

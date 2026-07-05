@@ -1,0 +1,110 @@
+{
+  "game_id": "21_ns-shaft",
+  "controls": {
+    "move_left": "ArrowLeft",
+    "move_right": "ArrowRight",
+    "use_x": "x",
+    "use_z": "z",
+    "use_d": "d",
+    "use_s": "s"
+  },
+  "control_effects": {
+    "move_left": [
+      "game_state.player.x"
+    ],
+    "move_right": [
+      "game_state.player.x"
+    ],
+    "use_x": [
+      "game_state.environment.nearby_platforms[0].props.height"
+    ],
+    "use_z": [
+      "game_state.player.life",
+      "metrics.hp"
+    ],
+    "use_d": [
+      "game_state.environment.nearby_platforms[0].props.height"
+    ],
+    "use_s": [
+      "game_state.environment.nearby_platforms[0].props.height",
+      "game_state.player.life",
+      "metrics.hp"
+    ]
+  },
+  "metrics": [
+    "attempts",
+    "best_score",
+    "hp",
+    "primary_score"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 21_ns-shaft. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), use_x (x), use_z (z), use_d (d), use_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "NoneType",
+    "game_state.player.x": "int",
+    "game_state.player.y": "float",
+    "game_state.player.vx": "int",
+    "game_state.player.vy": "float",
+    "game_state.player.life": "int",
+    "game_state.player.on_floor": "bool",
+    "game_state.environment.platform_count": "int",
+    "game_state.environment.nearby_platforms[0].x": "int",
+    "game_state.environment.nearby_platforms[0].y": "float",
+    "game_state.environment.nearby_platforms[0].props.height": "int",
+    "game_state.environment.nearby_platforms[0].props.relative_y": "int",
+    "game_state.environment.nearby_platforms[1].x": "int",
+    "game_state.environment.nearby_platforms[1].y": "float",
+    "game_state.environment.nearby_platforms[1].props.height": "int",
+    "game_state.environment.nearby_platforms[1].props.relative_y": "int",
+    "game_state.environment.nearby_platforms[2].x": "int",
+    "game_state.environment.nearby_platforms[2].y": "float",
+    "game_state.environment.nearby_platforms[2].props.height": "int",
+    "game_state.environment.nearby_platforms[2].props.relative_y": "float",
+    "game_state.environment.nearby_platforms[3].x": "int",
+    "game_state.environment.nearby_platforms[3].y": "float",
+    "game_state.environment.nearby_platforms[3].props.height": "int",
+    "game_state.environment.nearby_platforms[3].props.relative_y": "int",
+    "game_state.environment.nearby_platforms[4].x": "int",
+    "game_state.environment.nearby_platforms[4].y": "float",
+    "game_state.environment.nearby_platforms[4].props.height": "int",
+    "game_state.environment.nearby_platforms[4].props.relative_y": "float",
+    "game_state.environment.nearby_platforms[5].x": "int",
+    "game_state.environment.nearby_platforms[5].y": "float",
+    "game_state.environment.nearby_platforms[5].props.height": "int",
+    "game_state.environment.nearby_platforms[5].props.relative_y": "float",
+    "game_state.environment.nearby_platforms[6].x": "int",
+    "game_state.environment.nearby_platforms[6].y": "float",
+    "game_state.environment.nearby_platforms[6].props.height": "int",
+    "game_state.environment.nearby_platforms[6].props.relative_y": "float",
+    "game_state.environment.nearby_platforms[7].x": "int",
+    "game_state.environment.nearby_platforms[7].y": "float",
+    "game_state.environment.nearby_platforms[7].props.height": "int",
+    "game_state.environment.nearby_platforms[7].props.relative_y": "float",
+    "game_state.environment.nearby_platforms[8].x": "int",
+    "game_state.environment.nearby_platforms[8].y": "float",
+    "game_state.environment.nearby_platforms[8].props.height": "int",
+    "game_state.environment.nearby_platforms[8].props.relative_y": "float",
+    "metrics.primary_score": "int",
+    "metrics.hp": "int",
+    "metrics.attempts": "int",
+    "metrics.best_score": "int",
+    "debug.hooks_installed": "bool",
+    "debug.legacy_available": "bool",
+    "debug.legacy_status": "str",
+    "debug.pending_auto_reset": "bool",
+    "debug.last_reset_method": "str"
+  }
+}

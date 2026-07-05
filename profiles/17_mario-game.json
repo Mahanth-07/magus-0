@@ -1,0 +1,128 @@
+{
+  "game_id": "17_mario-game",
+  "controls": {
+    "move_left": "ArrowLeft",
+    "use_arrowright": "ArrowRight",
+    "use_arrowup": "ArrowUp",
+    "use_arrowdown": "ArrowDown",
+    "use_space": "Space",
+    "use_x": "x",
+    "use_z": "z",
+    "move_left_a": "a",
+    "use_d": "d",
+    "use_w": "w",
+    "use_s": "s"
+  },
+  "control_effects": {
+    "move_left": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.x"
+    ],
+    "use_arrowright": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.x"
+    ],
+    "use_arrowup": [
+      "game_state.player.vy",
+      "game_state.player.y"
+    ],
+    "use_arrowdown": [
+      "game_state.player.vy",
+      "game_state.player.y"
+    ],
+    "use_space": [
+      "game_state.player.vy",
+      "game_state.player.y"
+    ],
+    "use_x": [
+      "game_state.player.vy",
+      "game_state.player.y"
+    ],
+    "use_z": [
+      "game_state.player.vy",
+      "game_state.player.y"
+    ],
+    "move_left_a": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.x"
+    ],
+    "use_d": [
+      "game_state.completion_progress",
+      "game_state.player.vx",
+      "game_state.player.x"
+    ],
+    "use_w": [
+      "game_state.player.vy",
+      "game_state.player.y"
+    ],
+    "use_s": [
+      "game_state.player.vy",
+      "game_state.player.y"
+    ]
+  },
+  "metrics": [
+    "attempts",
+    "coins",
+    "distance",
+    "level_progress_percent",
+    "lives",
+    "primary_score",
+    "time_left_s"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 17_mario-game. Maximize primary_score. Available controls: move_left (ArrowLeft), use_arrowright (ArrowRight), use_arrowup (ArrowUp), use_arrowdown (ArrowDown), use_space (Space), use_x (x), use_z (z), move_left_a (a), use_d (d), use_w (w), use_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "str",
+    "game_state.environment.world": "int",
+    "game_state.environment.stage": "int",
+    "game_state.environment.world_display": "str",
+    "game_state.environment.area_width": "int",
+    "game_state.environment.paused": "bool",
+    "game_state.completion_progress": "float",
+    "game_state.player.x": "int",
+    "game_state.player.y": "int",
+    "game_state.player.vx": "int",
+    "game_state.player.vy": "int",
+    "game_state.player.power": "int",
+    "game_state.player.alive": "bool",
+    "game_state.player.name": "str",
+    "game_state.entities": "NoneType",
+    "metrics.primary_score": "int",
+    "metrics.lives": "int",
+    "metrics.coins": "int",
+    "metrics.distance": "int",
+    "metrics.attempts": "int",
+    "metrics.time_left_s": "int",
+    "metrics.enemies_alive": "NoneType",
+    "metrics.level_progress_percent": "int",
+    "debug.base_status": "str",
+    "debug.map_time": "int",
+    "debug.game_on": "bool",
+    "debug.game_off": "bool",
+    "debug.paused": "bool",
+    "debug.reset_count": "int",
+    "debug.episode_count": "int",
+    "debug.last_reset_method": "str",
+    "debug.last_stable_map[0]": "int",
+    "debug.last_stable_map[1]": "int",
+    "debug.recovery_pending": "bool",
+    "debug.death_count": "int",
+    "debug.coin_counter_display": "int"
+  }
+}

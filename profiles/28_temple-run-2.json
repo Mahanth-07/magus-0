@@ -1,0 +1,98 @@
+{
+  "game_id": "28_temple-run-2",
+  "controls": {
+    "use_arrowleft": "ArrowLeft",
+    "use_arrowup": "ArrowUp",
+    "use_z": "z",
+    "use_d": "d",
+    "use_w": "w",
+    "use_s": "s"
+  },
+  "control_effects": {
+    "use_arrowleft": [
+      "game_state.environment.track_piece"
+    ],
+    "use_arrowup": [
+      "game_state.environment.track_piece"
+    ],
+    "use_z": [
+      "game_state.environment.track_piece"
+    ],
+    "use_d": [
+      "game_state.environment.track_piece"
+    ],
+    "use_w": [
+      "game_state.environment.track_piece"
+    ],
+    "use_s": [
+      "game_state.environment.track_piece"
+    ]
+  },
+  "metrics": [
+    "attempts",
+    "coins",
+    "deaths",
+    "distance",
+    "minecart_survived_this_run",
+    "powermeter_used_this_run",
+    "powerups_collected_this_run",
+    "primary_score",
+    "resurrects_this_run",
+    "score",
+    "stumbles_this_run",
+    "waterslide_survived_this_run"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 28_temple-run-2. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowup (ArrowUp), use_z (z), use_d (d), use_w (w), use_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "NoneType",
+    "game_state.player.is_dead": "bool",
+    "game_state.player.movement_state": "str",
+    "game_state.player.position.x": "float",
+    "game_state.player.position.y": "float",
+    "game_state.player.position.z": "float",
+    "game_state.player.speed": "float",
+    "game_state.player.boost_speed": "int",
+    "game_state.environment.track_piece": "str",
+    "game_state.environment.zone": "str",
+    "game_state.environment.challenge_hint": "NoneType",
+    "game_state.environment.piece_progress": "float",
+    "game_state.completion_progress": "NoneType",
+    "game_state.distance": "float",
+    "metrics.primary_score": "int",
+    "metrics.score": "int",
+    "metrics.distance": "float",
+    "metrics.coins": "int",
+    "metrics.deaths": "int",
+    "metrics.attempts": "int",
+    "metrics.resurrects_this_run": "int",
+    "metrics.powerups_collected_this_run": "int",
+    "metrics.powermeter_used_this_run": "int",
+    "metrics.stumbles_this_run": "int",
+    "metrics.waterslide_survived_this_run": "int",
+    "metrics.minecart_survived_this_run": "int",
+    "debug.lifecycle_flags.started": "bool",
+    "debug.lifecycle_flags.running": "bool",
+    "debug.lifecycle_flags.paused": "bool",
+    "debug.lifecycle_flags.restarting": "bool",
+    "debug.death_message": "NoneType",
+    "debug.current_meter_streak": "int",
+    "debug.current_seed": "int",
+    "debug.requested_difficulty": "NoneType",
+    "debug.last_reset_method": "NoneType",
+    "debug.episode_count": "int"
+  }
+}

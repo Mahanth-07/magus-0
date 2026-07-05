@@ -45,6 +45,7 @@ def run_episode(
             partner_recent_actions=(gameworld.read_partner_actions()
                                     if hasattr(gameworld, "read_partner_actions") else []),
             state_text=(gameworld.state_text() if hasattr(gameworld, "state_text") else ""),
+            raw_state=(gameworld.raw_state() if hasattr(gameworld, "raw_state") else None),
         )
         # A single transient model-call failure must not kill the whole episode
         # (long runs / slow reasoning models / dedicated endpoints occasionally

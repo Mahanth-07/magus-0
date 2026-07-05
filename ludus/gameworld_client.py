@@ -491,6 +491,11 @@ class GameWorldClient:
             return tetris
         return _wolf3d_state_text(state)
 
+    def raw_state(self) -> dict:
+        """The raw getState() dict — the StateSource seam for onboarding/induction."""
+        self._ensure_started()
+        return self._submit(self._mgr.get_game_state()) or {}
+
     def read_partner_actions(self) -> list[str]:
         self._ensure_started()
         return self._submit(self._read_partner_actions())
@@ -558,3 +563,7 @@ class FakeGameWorld:
 
     def state_text(self) -> str:
         return ""
+
+    def raw_state(self) -> dict:
+        m = self._metrics[min(self._i, len(self._metrics) - 1)]
+        return {"status": "playing", "metrics": dict(m), "game_state": {}}

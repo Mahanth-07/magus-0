@@ -183,6 +183,43 @@ A/B eval: student 1022 vs gemini-2.5-flash 466 (live, 15 steps) ✅
 3. **Multi-game distillation** — build teachers for Wolf3D and Fireboy & Watergirl; collect multi-game SFT data; fine-tune a shared student.
 4. **RL to surpass the teacher** — the cheapest path is improving the *ranking function* itself (tune Dellacherie weights via CMA-ES against the `tetris_sim` simulator, or a small value network on simulated rollouts); the whole pipeline inherits the improvement since the teacher is the label source. Full policy-gradient RL would also train against the simulator, warm-started from the student.
 5. **Model-based reflection** — replace the blunt metric-based `Reflector` with a model-authored situational rule, sharper than "action X did not improve score."
+6. **Magus-1 (in progress)** — see `docs/specs/2026-07-04-magus-1-induced-world-models-design.md`.
+   **M1 auto-onboarding: ✅** `python -m ludus.cli onboard <game>` probes any GameWorld game
+   (presses candidate keys, diffs `getState()`, filters ambient drift) and generates a playable
+   `GameProfile` — controls, metrics, objective — with zero hand-written config. First live sweep:
+   5/5 games produced playable profiles (tetris + breakout with clean movement semantics; snake +
+   flappy-bird exposed a known M2 fix: press-window motion attribution in continuous games). Play
+   any profile with `--profile profiles/<game>.json`.
+   **M2 world-model induction: ✅** `explore` collects (state, action, state') transitions;
+   `induce` has an LLM write the game's `predict()` as sandboxed Python, validated field-by-field
+   against held-out episodes (gate requires BOTH train and holdout) with a bounded
+   counterexample-repair loop. Live results: `synthetic:grid` **INDUCED** (holdout 1.000 /
+   train 0.993, 1 iteration) — Claude inferred grid bounds, movement, step dynamics, AND the
+   +10 goal-scoring mechanic from 4 observed events once rare (metric-changing) transitions
+   got prompt priority; two earlier runs with those events buried hallucinated the mechanic,
+   the sharpest lesson of M2: *what the LLM doesn't see, it invents*. `29_tetris` **FAILED
+   honestly at 0.800** with a measured boundary: piece y-positions are wall-clock-dependent
+   (gravity during the press window) — the partial-model limit the spec predicted. M2
+   carry-forwards: rare-event coverage bounds what's learnable (grid's goal-respawn cycle,
+   4 observations, correctly copied through as unpredictable); threshold gates dilute
+   mechanics rarer than (1−threshold); wall-clock dynamics need time-delta inputs or
+   press-quantized stepping.
+   **M3 planner + duel: ✅ harness, honest partial on the milestone target.** `rank_macros`
+   does batched beam search over the sandboxed induced model (one subprocess per depth
+   level); `PlannerProvider` plays through the unmodified loop and **refuses non-INDUCED
+   models** (verified live on tetris); `duel <game>` runs planner vs zero-shot VLM on the
+   same budget. Live: planner won the grid duel 10–0 (caveat recorded: a vision baseline is
+   structurally blind on synthetic games — fake PNGs; the harness mechanics, not the
+   comparison, are the validated claim). The real-game target (01_2048, turn-based, ideal
+   on paper) FAILED induction through a three-round diagnosis chain, each round fixing a
+   real validator defect: entity-LIST state → order-sensitive validation (fixed: canonical
+   ordering) → spawn-shifted canonical indices (fixed: entity-matching/set-based scoring,
+   a perfect model now misses only the random spawn) → final verdict 0.747 with
+   entities=0.10 under SET comparison: the LLM genuinely hasn't learned the move dynamics.
+   **M4 leads, recorded:** (a) the 120ms key-hold may fire key-repeat, contaminating
+   transitions with multi-move dynamics (suspicious −3/−4 entity deltas on 11 of 240
+   presses); (b) nonstandard coordinate/direction conventions. The validator improvements
+   survive regardless.
 
 ---
 

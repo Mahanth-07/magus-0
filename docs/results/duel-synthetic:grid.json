@@ -1,0 +1,20 @@
+{
+  "game": "synthetic:grid",
+  "steps": 10,
+  "primary_metric": "score",
+  "planner": {
+    "provider": "planner",
+    "score": 10.0,
+    "legal_action_rate": 1.0,
+    "steps": 10,
+    "channel": "raw_state"
+  },
+  "baseline": {
+    "provider": "gateway",
+    "score": 0.0,
+    "legal_action_rate": 0.0,
+    "steps": 10,
+    "channel": "screenshot"
+  },
+  "winner": "planner"
+}

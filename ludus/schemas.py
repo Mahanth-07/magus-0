@@ -28,6 +28,7 @@ class PlannerContext(BaseModel):
     screenshot_png: bytes = b""
     partner_recent_actions: list[str] = Field(default_factory=list)
     state_text: str = ""
+    raw_state: dict | None = None   # full getState() dict (planner seam; None if unsupported)
 
 
 class StepRecord(BaseModel):

@@ -87,13 +87,80 @@ python -m ludus.cli <game> <mode> [--steps N] [--provider mock|gateway|anthropic
 - `mode`: `baseline` (no rules) | `memory` (rules fed into prompt).
 - `--fake`: uses offline `FakeGameWorld` — no browser, no network.
 - `--provider nebius`: routes to `NebiusProvider`. Set `NEBIUS_MODEL` + `NEBIUS_API_KEY`. Set `NEBIUS_MULTIMODAL=0` for the text-only LoRA student.
+- `--profile profiles/<game>.json`: play via a machine-generated `GameProfile` (GenericAdapter)
+  instead of `configs/<game>.yaml` — works for ANY GameWorld catalog id, no per-game code.
+
+### Auto-onboarding (Magus-1 M1)
+
+```bash
+python -m ludus.cli onboard <game> [--out profiles] [--headed]
+```
+
+- `<game>`: adapter name (`tetris`), raw catalog id (`05_breakout`), or `synthetic:grid` /
+  `synthetic:counter` (offline, used by tests).
+- Probes candidate keys (`ludus/onboarding/prober.py`), diffs `raw_state()` around each press,
+  filters ambient drift + tick counters, names controls heuristically, picks metrics
+  (`ludus/onboarding/metrics.py`), and writes `profiles/<game>.json` (`GameProfile`).
+- The ambient baseline samples over press-sized windows (M2 fix), so continuous world motion
+  (snake, flappy-bird) lands in `ambient_paths` instead of being attributed to keys. Flaky
+  `apply()` calls are skipped and counted (`ProbeReport.apply_errors`), never fatal.
+
+### World-model induction (Magus-1 M2)
+
+```bash
+python -m ludus.cli explore <game> [--episodes 5 --steps 40 --seed 7]   # -> data/<game>/transitions.jsonl
+python -m ludus.cli induce <game> [--iterations 4]                      # -> worldmodels/<game>/model.py + report.json
+```
+
+- `explore`: uniform-random self-play over the profile's controls, one `Transition`
+  (before/action/after raw states) per press (`ludus/worldmodel/explore.py`). `data/` is
+  gitignored.
+- `induce`: an LLM (`ludus/worldmodel/llm.py` — anthropic default, gateway fallback, set
+  `LUDUS_SYNTH_BACKEND`/`LUDUS_SYNTH_MODEL`) writes `predict(state, action) -> next_state` as
+  pure Python; candidates pass an AST allowlist gate and run in a subprocess sandbox
+  (`sandbox.py`); a field-weighted validator (`validate.py`, tick/wall-clock paths excluded,
+  primary-metric + player paths weigh 3x) gates INDUCED on BOTH train and holdout; train
+  counterexamples drive up to `--iterations` repair rounds. Artifacts always saved, FAILED
+  verdicts included (`worldmodels/<game>/report.json` has per-field accuracies).
+- Live status: `synthetic:grid` INDUCED (holdout 1.000 / train 0.993, +10 goal mechanic learned
+  from 4 observed events once rare transitions got prompt priority); `29_tetris` FAILED honestly
+  at 0.800 (piece y-positions are wall-clock-dependent — gravity during the press window).
+  M2 carry-forwards: rare-event coverage bounds learnability (grid's goal-respawn cycle: 4
+  observations → correctly copied through as unpredictable); threshold gates dilute mechanics
+  rarer than (1−threshold); wall-clock dynamics need time-delta inputs. Sharpest M2 lesson:
+  what the LLM doesn't see in the prompt, it INVENTS — prompt sampling is load-bearing.
+
+### Planner + duel (Magus-1 M3)
+
+```bash
+python -m ludus.cli <game> <mode> --profile profiles/<game>.json --provider planner
+python -m ludus.cli duel <game> [--steps 15 --baseline gateway]
+```
+
+- `PlannerProvider` (`ludus/planning/provider.py`): beam search (`rank_macros`, batched — one
+  sandbox subprocess per depth level) over `worldmodels/<game>/model.py`; REFUSES models whose
+  report.json is not INDUCED. Needs `--profile`. Gets state via `PlannerContext.raw_state`
+  (threaded by the loop, hasattr-guarded).
+- `duel`: planner vs a baseline provider, same game/steps, fresh client per side; prints an
+  honest table with per-side information channel (`[raw_state]` vs `[screenshot]`) and
+  persists `runs/duel-<game>.json` (milestone copies live in `docs/results/`).
+- Live status: grid duel planner 10–0 (vision baselines are structurally blind on synthetic
+  games — fake PNGs — so only the harness mechanics are validated there); tetris duel refused
+  (FAILED model — the honesty gate working); 01_2048 induction FAILED 0.747 after two real
+  validator fixes (canonical ordering, then entity-matching/set-based scoring in
+  `ludus/worldmodel/canonical.py` + `validate.py` — lists-of-dicts score by content
+  membership, entity count as a scalar stand-in). Final diagnosis: entities=0.10 under SET
+  comparison — the dynamics themselves are unlearned. M4 leads: 120ms key-hold may fire
+  key-repeat (multi-move transitions; −3/−4 entity deltas on 11/240 presses), or
+  nonstandard coordinate conventions. Tap-length exploration presses is the first thing
+  to try.
 
 ---
 
 ## Running tests
 
 ```bash
-.venv/bin/pytest -v --ignore=infra   # 128 tests, all offline
+.venv/bin/pytest -v --ignore=infra   # 215 tests, all offline
 ```
 
 Tests cover schemas (including `actions` macro + `state_text`), mock provider, fallback provider, outcome detection, reflection, rulebook, local store, dual store, loop, config loader, and the tetris adapter.
@@ -161,7 +228,7 @@ Fireboy & Watergirl requires `?autostart=1` — handled internally.
 
 - `InsForgeGatewayProvider` — model gateway (primary, vision-capable). Default model: `google/gemini-2.5-flash` (set via `INSFORGE_VISION_MODEL`).
 - `AnthropicProvider` — fallback via Anthropic API.
-- `MockProvider` — deterministic, offline, returns a fixed `Decision`. Used by all 128 tests.
+- `MockProvider` — deterministic, offline, returns a fixed `Decision`. Used by all 215 tests.
 - `NebiusProvider` — Nebius AI Studio; text-only or multimodal depending on `NEBIUS_MULTIMODAL`.
 - `FallbackProvider` — ordered list; degrades on error and logs `WARNING: degrading to ...`.
 - `DualWriteStore` — writes local first (required); InsForge write is best-effort. Emits a warning on InsForge failure, never raises.

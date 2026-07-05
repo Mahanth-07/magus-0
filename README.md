@@ -386,3 +386,11 @@ data/tetris/        distillation dataset (gitignored): examples_sim.jsonl + nebi
 runs/               local persistence output (gitignored)
 tests/              128 offline unit tests
 ```
+
+## Current roadmap (2026-07-05, post-sweep)
+
+See `docs/specs/2026-07-05-stage4-pi-style-student.md` — the π0.7-informed plan:
+(1) Stage-4 π-style student (planner-as-teacher trajectory collection → Holo-3.1-4B vs
+Qwen3-VL-8B LoRA A/B via Together/Unsloth → student as third duel column), (2) RECAP-lite
+advantage-conditioned SFT on game scores, (3) onboarding/exploration robustness for the
+14 sweep-dead games. Nebius retired for training (cannot serve LoRA); stack is flexible.

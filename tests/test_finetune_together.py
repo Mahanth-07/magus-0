@@ -13,14 +13,23 @@ from scripts.finetune_together import _model_id_from, TERMINAL
 # _model_id_from tests
 # ---------------------------------------------------------------------------
 
-def test_model_id_prefers_output_name():
-    job = {"output_name": "Qwen/Qwen3-VL-8B-Instruct:magus-student-v1:abc123",
+def test_model_id_prefers_model_output_name():
+    """model_output_name is what Together actually returns on completion."""
+    job = {"model_output_name": "mahanth1112_3532/Qwen3-VL-8B-Instruct-magus-student-v1-abc",
+           "output_name": None, "fine_tuned_model": None}
+    assert _model_id_from(job) == "mahanth1112_3532/Qwen3-VL-8B-Instruct-magus-student-v1-abc"
+
+
+def test_model_id_falls_back_to_x_model_output_name():
+    job = {"model_output_name": None,
+           "x_model_output_name": "mahanth1112_3532/Qwen3-VL-8B-Instruct-magus-student-v1-xyz",
            "fine_tuned_model": None}
-    assert _model_id_from(job) == "Qwen/Qwen3-VL-8B-Instruct:magus-student-v1:abc123"
+    assert _model_id_from(job) == "mahanth1112_3532/Qwen3-VL-8B-Instruct-magus-student-v1-xyz"
 
 
 def test_model_id_falls_back_to_fine_tuned_model():
-    job = {"output_name": None,
+    job = {"model_output_name": None, "x_model_output_name": None,
+           "output_name": None,
            "fine_tuned_model": "Qwen/Qwen3-VL-8B-Instruct:magus-student-v1:xyz"}
     assert _model_id_from(job) == "Qwen/Qwen3-VL-8B-Instruct:magus-student-v1:xyz"
 
@@ -63,6 +72,7 @@ def test_terminal_set_contains_expected_statuses():
     assert "failed" in TERMINAL
     assert "cancelled" in TERMINAL
     assert "error" in TERMINAL
+    assert "completed" in TERMINAL  # Together uses "completed" not "succeeded"
 
 
 def test_terminal_set_does_not_contain_running_statuses():

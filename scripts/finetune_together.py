@@ -43,7 +43,7 @@ DEFAULT_TRAIN = DATA_DIR / "together_train.jsonl"
 DEFAULT_VAL = DATA_DIR / "together_val.jsonl"
 BASE_MODEL = "Qwen/Qwen3-VL-8B-Instruct"
 
-TERMINAL = {"succeeded", "failed", "cancelled", "error"}
+TERMINAL = {"succeeded", "failed", "cancelled", "error", "completed"}
 
 
 def _client(api_key: str):
@@ -128,13 +128,15 @@ def get_job(client, job_id: str) -> dict:
 
 
 def _model_id_from(job: dict) -> str | None:
-    """Extract the servable fine-tuned model id from a succeeded job dict.
+    """Extract the servable fine-tuned model id from a succeeded/completed job dict.
 
-    Checks output_name and fine_tuned_model. Never returns a raw file id
-    (starting with "file-"). Returns None if no servable id is found — the
-    caller then fails LOUDLY (not silently accepting an unusable id).
+    Together AI uses several field names across API versions:
+      model_output_name, x_model_output_name, output_name, fine_tuned_model
+
+    Never returns a raw file id (starting with "file-"). Returns None if no
+    servable id is found — the caller then fails LOUDLY.
     """
-    for key in ("output_name", "fine_tuned_model"):
+    for key in ("model_output_name", "x_model_output_name", "output_name", "fine_tuned_model"):
         val = job.get(key)
         if val and isinstance(val, str) and not val.startswith("file-"):
             return val
@@ -229,7 +231,7 @@ def main() -> None:
     print(f"job id : {job_id}")
     print(f"status : {status}")
 
-    if status == "succeeded":
+    if status in ("succeeded", "completed"):
         model_id = _model_id_from(job)
         if model_id is None:
             print("\n--- job object ---")
@@ -243,7 +245,8 @@ def main() -> None:
         print("\nTo drive the student (Together OpenAI-compatible endpoint):")
         print(f'  export TOGETHER_STUDENT_MODEL="{model_id}"')
         print(f'  export TOGETHER_API_KEY="{key[:8]}..."')
-        print("  # Use TogetherProvider (OpenAI-compatible, base https://api.together.xyz/v1)")
+        print("  # Base URL: https://api.together.xyz/v1 (OpenAI-compatible)")
+        print("  # wire a TogetherProvider (mirror NebiusProvider) pointing to this model")
     elif status == "failed":
         print(f"error  : {json.dumps(job.get('error') or job.get('failure_reason'))}")
     elif status not in TERMINAL:

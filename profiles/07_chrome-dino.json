@@ -1,25 +1,48 @@
 {
   "game_id": "07_chrome-dino",
   "controls": {
-    "move_up": "ArrowUp",
-    "move_up_space": "Space"
+    "use_arrowup": "ArrowUp",
+    "use_arrowdown": "ArrowDown",
+    "use_space": "Space",
+    "use_x": "x"
   },
   "control_effects": {
-    "move_up": [
-      "debug.activated",
+    "use_arrowup": [
       "game_state.player.is_jumping",
       "game_state.player.state",
       "game_state.player.vy",
-      "game_state.player.y",
-      "metrics.speed"
+      "game_state.player.y"
     ],
-    "move_up_space": [
-      "debug.activated",
+    "use_arrowdown": [
+      "game_state.entities[0].props.distance_ahead",
+      "game_state.entities[0].vx",
+      "game_state.entities[0].x",
+      "game_state.environment.next_obstacle.props.distance_ahead",
+      "game_state.environment.next_obstacle.vx",
+      "game_state.environment.next_obstacle.x"
+    ],
+    "use_space": [
+      "game_state.entities[0].props.distance_ahead",
+      "game_state.entities[0].vx",
+      "game_state.entities[0].x",
+      "game_state.environment.next_obstacle.props.distance_ahead",
+      "game_state.environment.next_obstacle.vx",
+      "game_state.environment.next_obstacle.x",
       "game_state.player.is_jumping",
       "game_state.player.state",
       "game_state.player.vy",
-      "game_state.player.y",
-      "metrics.speed"
+      "game_state.player.y"
+    ],
+    "use_x": [
+      "game_state.entities[0].props.distance_ahead",
+      "game_state.entities[0].vx",
+      "game_state.entities[0].x",
+      "game_state.entities[1].props.distance_ahead",
+      "game_state.entities[1].vx",
+      "game_state.entities[1].x",
+      "game_state.environment.next_obstacle.props.distance_ahead",
+      "game_state.environment.next_obstacle.vx",
+      "game_state.environment.next_obstacle.x"
     ]
   },
   "metrics": [
@@ -33,7 +56,7 @@
   "primary_metric": "primary_score",
   "higher_is_better": true,
   "timing_ms": 120,
-  "objective": "You are playing 07_chrome-dino. Maximize primary_score. Available controls: move_up (ArrowUp), move_up_space (Space). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "objective": "You are playing 07_chrome-dino. Maximize primary_score. Available controls: use_arrowup (ArrowUp), use_arrowdown (ArrowDown), use_space (Space), use_x (x). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
   "state_schema": {
     "schemaVersion": "str",
     "gameId": "str",
@@ -59,10 +82,10 @@
     "game_state.completion_progress": "NoneType",
     "game_state.entities": "NoneType",
     "metrics.primary_score": "int",
-    "metrics.distance": "int",
+    "metrics.distance": "float",
     "metrics.attempts": "int",
     "metrics.high_score": "int",
-    "metrics.speed": "int",
+    "metrics.speed": "float",
     "metrics.obstacles_visible": "int",
     "debug.crashed": "bool",
     "debug.paused": "bool",

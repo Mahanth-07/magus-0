@@ -19,7 +19,8 @@
     ],
     "use_w": [
       "game_state.environment.current_guess_length",
-      "game_state.environment.letters[0][0]"
+      "game_state.environment.letters[0][0]",
+      "game_state.environment.letters[0][1]"
     ],
     "use_s": [
       "game_state.environment.current_guess_length"

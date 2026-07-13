@@ -1,0 +1,145 @@
+{
+  "game_id": "22_ovo",
+  "controls": {
+    "move_left": "ArrowLeft",
+    "move_right": "ArrowRight",
+    "move_up": "ArrowUp",
+    "use_arrowdown": "ArrowDown",
+    "use_space": "Space",
+    "use_x": "x",
+    "use_z": "z",
+    "use_a": "a",
+    "use_d": "d",
+    "use_w": "w",
+    "use_s": "s"
+  },
+  "control_effects": {
+    "move_left": [
+      "game_state.distance_to_exit",
+      "game_state.entities[0].props.distance",
+      "game_state.environment.closest_exit.distance",
+      "game_state.environment.scroll_x",
+      "game_state.player.x",
+      "metrics.distance_to_goal"
+    ],
+    "move_right": [
+      "game_state.distance_to_exit",
+      "game_state.entities[0].props.distance",
+      "game_state.environment.closest_exit.distance",
+      "game_state.environment.scroll_x",
+      "game_state.player.x",
+      "metrics.distance_to_goal"
+    ],
+    "move_up": [
+      "game_state.distance_to_exit",
+      "game_state.entities[0].props.distance",
+      "game_state.environment.closest_exit.distance",
+      "game_state.environment.scroll_x",
+      "game_state.player.y",
+      "metrics.distance_to_goal"
+    ],
+    "use_arrowdown": [
+      "game_state.distance_to_exit",
+      "game_state.entities[0].props.distance",
+      "game_state.environment.closest_exit.distance",
+      "game_state.environment.scroll_x",
+      "game_state.player.y",
+      "metrics.distance_to_goal"
+    ],
+    "use_space": [
+      "game_state.environment.scroll_x"
+    ],
+    "use_x": [
+      "game_state.environment.scroll_x"
+    ],
+    "use_z": [
+      "game_state.environment.scroll_x"
+    ],
+    "use_a": [
+      "game_state.environment.scroll_x"
+    ],
+    "use_d": [
+      "game_state.environment.scroll_x"
+    ],
+    "use_w": [
+      "game_state.environment.scroll_x"
+    ],
+    "use_s": [
+      "game_state.environment.scroll_x"
+    ]
+  },
+  "metrics": [
+    "attempts",
+    "coin_remaining_level",
+    "coins",
+    "coins_total",
+    "distance_to_goal",
+    "level_number",
+    "primary_score"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 22_ovo. Maximize primary_score. Available controls: move_left (ArrowLeft), move_right (ArrowRight), move_up (ArrowUp), use_arrowdown (ArrowDown), use_space (Space), use_x (x), use_z (z), use_a (a), use_d (d), use_w (w), use_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "int",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "int",
+    "game_state.player.x": "int",
+    "game_state.player.y": "float",
+    "game_state.player.width": "int",
+    "game_state.player.height": "int",
+    "game_state.player.layer": "str",
+    "game_state.player.props.uid": "int",
+    "game_state.player.props.type_name": "str",
+    "game_state.environment.layout_name": "str",
+    "game_state.environment.scroll_x": "int",
+    "game_state.environment.scroll_y": "float",
+    "game_state.environment.closest_exit.x": "int",
+    "game_state.environment.closest_exit.y": "int",
+    "game_state.environment.closest_exit.distance": "float",
+    "game_state.completion_progress": "int",
+    "game_state.coins.collected_total": "int",
+    "game_state.coins.collected_level": "int",
+    "game_state.coins.remaining_level": "int",
+    "game_state.coins.total_level": "int",
+    "game_state.distance_to_exit": "float",
+    "game_state.entities[0].type": "str",
+    "game_state.entities[0].props.uid": "int",
+    "game_state.entities[0].props.type_key": "str",
+    "game_state.entities[0].props.distance": "float",
+    "game_state.entities[0].x": "int",
+    "game_state.entities[0].y": "int",
+    "game_state.entities[1].type": "str",
+    "game_state.entities[1].props.uid": "int",
+    "game_state.entities[1].props.type_key": "str",
+    "game_state.entities[1].props.type_name": "str",
+    "game_state.entities[1].x": "int",
+    "game_state.entities[1].y": "int",
+    "metrics.primary_score": "int",
+    "metrics.coins": "int",
+    "metrics.coins_total": "int",
+    "metrics.distance_to_goal": "float",
+    "metrics.level_number": "int",
+    "metrics.coin_remaining_level": "int",
+    "metrics.attempts": "int",
+    "debug.layout_name": "str",
+    "debug.runtime_loading": "bool",
+    "debug.runtime_suspended": "bool",
+    "debug.runtime_timescale": "int",
+    "debug.runtime_tickcount": "int",
+    "debug.coin_type_keys[0]": "str",
+    "debug.exit_type_keys[0]": "str",
+    "debug.requested_difficulty": "NoneType",
+    "debug.last_reset_method": "str"
+  }
+}

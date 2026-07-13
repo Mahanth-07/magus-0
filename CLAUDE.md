@@ -347,3 +347,11 @@ games, include DUEL_LOST games where planner scores well at longer horizons);
 (2) onboarding robustness (14 sweep-dead games); (3) Holo-3.1-4B A/B (RunPod).
 Note: one suite flake if TOGETHER_MODEL is exported during pytest (available()
 gating test) — run tests in a clean shell.
+
+### v2 RECAP results (2026-07-12)
+
+v2 model: mahanth1112_3532/Qwen3-VL-8B-Instruct-magus-student-v2-recap-2e645694
+(serve w/ TOGETHER_RECAP=1). Results ~= v1, doodle regressed (see
+docs/results/sweep-table.md). Both endpoints DELETED. Next: repeated-duel
+variance harness, expert-only ablation, then onboarding robustness (14 dead
+games). Check Together dashboard for v2 train cost before more fine-tunes.

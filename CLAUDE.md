@@ -321,3 +321,16 @@ robustness for 14 sweep-dead games. Holo-3.1-4B A/B deferred to round two (RunPo
 **Gotchas that bit us:** train==inference prompt byte-parity (use _SYSTEM +
 build_user_text); Nebius can't serve LoRA (retired); anaconda python for browser,
 .venv for tests; episode_id collisions overwrite runs/ dirs.
+
+### Stage-4 fine-tune facts (2026-07-12)
+
+Together job ft-c4216f79-b2cc COMPLETED on Qwen/Qwen3-VL-8B-Instruct (LoRA r16,
+3 epochs, val loss 0.26->0.20; 886 train/101 val rows from together_train/val.jsonl —
+regenerate via scripts/export_together.py; images downscaled 512px JPEG q80 and the
+SERVING provider must match: ludus/providers/together.py imports _encode_image).
+Model: mahanth1112_3532/Qwen3-VL-8B-Instruct-magus-student-v1-4d2347c5
+Serving REQUIRES a dedicated endpoint (~$5.40/hr 1xH100, inactive_timeout 15min):
+POST /v1/endpoints {model, hardware:"1x_nvidia_h100_80gb_sxm",
+autoscaling:{min_replicas:1,max_replicas:1}}. Endpoint model name gets a suffix
+(...-3aa0e6fe) — use THAT as TOGETHER_MODEL. STOP endpoints after evals
+(DELETE /v1/endpoints/<id> or let inactivity timeout fire).

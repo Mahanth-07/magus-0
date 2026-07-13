@@ -295,3 +295,29 @@ planner beat zero-shot gemini-flash on 3 (01_2048 212-56, 10_doodle-jump,
 8 onboard, 6 explore, 7 induction — errors recorded per game. Next levers:
 duel-loss analysis on INDUCED games, longer duels for ties, mouse support
 for minesweeper-class explore failures.
+
+## SESSION STATE (2026-07-12) — resume here after context compaction
+
+**Where we are:** Stage 4 (pi-style student), fine-tune phase. Full journey + plan:
+`docs/specs/2026-07-05-stage4-pi-style-student.md` (roadmap) + README "Current roadmap".
+
+**Done:** M0 distillation (student 1022 vs gemini 466 tetris); M1 onboard; M2 induction;
+M3 planner+duel; M4 milestone (2048 duel 212-56); 33-game sweep (3 wins, 12 INDUCED,
+docs/results/sweep-table.md); Stage-4 data layer (ludus/student/dataset.py). Teacher
+trajectories collected: 72 episodes, filtered -> data/student/sft_v1.jsonl (1132 rows,
+34 episodes; REGENERABLE: scripts/collect_trajectories.py then build_dataset with
+min_final_score=1.0). Best 2048 planner run: 888 (40 steps). Finding: several duel
+losses look like 15-step budget artifacts (edge-surf/hextris/minecraft score fine at 40).
+
+**NOW:** TOGETHER_API_KEY is in .env (user funded account). Next actions:
+1. Convert sft_v1.jsonl -> Together VLM-SFT format (OpenAI messages w/ base64 images).
+2. Upload + LoRA fine-tune Qwen3-VL-8B (or best available vision-FT model on Together).
+3. Serve via Together; wire a TogetherProvider (OpenAI-compatible, mirror NebiusProvider
+   in ludus/providers/nebius.py but vision) or reuse OpenAI-shape path.
+4. Eval: student as third column in duels (cmd_duel baseline_provider hook exists).
+Then: RECAP-lite (advantage-conditioned SFT, spec section 2); then onboarding
+robustness for 14 sweep-dead games. Holo-3.1-4B A/B deferred to round two (RunPod).
+
+**Gotchas that bit us:** train==inference prompt byte-parity (use _SYSTEM +
+build_user_text); Nebius can't serve LoRA (retired); anaconda python for browser,
+.venv for tests; episode_id collisions overwrite runs/ dirs.

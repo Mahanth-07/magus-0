@@ -44,6 +44,13 @@ class TogetherProvider:
         return bool(self._key and self._model)
 
     def _messages(self, ctx: PlannerContext) -> list[dict]:
+        import os
+        from ludus.student.recap import condition_system
+        # Gate: only append expert conditioning when TOGETHER_RECAP=1.
+        # Default off — v1 model was trained without conditioning; gate it.
+        recap_on = os.environ.get("TOGETHER_RECAP", "0").strip() == "1"
+        system_text = _SYSTEM + condition_system("expert") if recap_on else _SYSTEM
+
         # System as plain string (matching OpenAI chat API standard format;
         # Together normalises content arrays to strings internally).
         user_text = build_user_text(
@@ -57,7 +64,7 @@ class TogetherProvider:
         # Image: downscaled to max 512px JPEG — EXACT same preprocessing as training.
         data_uri = _encode_image(ctx.screenshot_png)
         return [
-            {"role": "system", "content": _SYSTEM},
+            {"role": "system", "content": system_text},
             {
                 "role": "user",
                 "content": [

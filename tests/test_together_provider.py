@@ -202,3 +202,51 @@ def test_base_url_defaults_and_override(monkeypatch):
 
     monkeypatch.setenv("TOGETHER_BASE_URL", "https://custom.test/v1")
     assert TogetherProvider()._base == "https://custom.test/v1"
+
+
+# ---------------------------------------------------------------------------
+# Test 6: RECAP gating — TOGETHER_RECAP=1 appends conditioning suffix
+# ---------------------------------------------------------------------------
+
+def test_together_recap_off_by_default(monkeypatch):
+    """Without TOGETHER_RECAP=1, system message must equal _SYSTEM exactly (no suffix)."""
+    monkeypatch.delenv("TOGETHER_RECAP", raising=False)
+    monkeypatch.setenv("TOGETHER_API_KEY", "test-key")
+    monkeypatch.setenv("TOGETHER_MODEL", "test/model")
+    captured = _capture_post(monkeypatch)
+
+    ctx = PlannerContext(
+        objective="win", legal_actions=["left", "right"],
+        state_text="", screenshot_png=_make_png(),
+    )
+    TogetherProvider().decide(ctx)
+
+    msgs = captured["json"]["messages"]
+    sys_content = msgs[0]["content"]
+    assert sys_content == _SYSTEM, (
+        f"With TOGETHER_RECAP unset, system must be exactly _SYSTEM. Got: {sys_content!r}"
+    )
+
+
+def test_together_recap_on_appends_expert_conditioning(monkeypatch):
+    """With TOGETHER_RECAP=1, system message is _SYSTEM + condition_system('expert')."""
+    from ludus.student.recap import condition_system
+
+    monkeypatch.setenv("TOGETHER_RECAP", "1")
+    monkeypatch.setenv("TOGETHER_API_KEY", "test-key")
+    monkeypatch.setenv("TOGETHER_MODEL", "test/model")
+    captured = _capture_post(monkeypatch)
+
+    ctx = PlannerContext(
+        objective="win", legal_actions=["left", "right"],
+        state_text="", screenshot_png=_make_png(),
+    )
+    TogetherProvider().decide(ctx)
+
+    msgs = captured["json"]["messages"]
+    sys_content = msgs[0]["content"]
+    expected = _SYSTEM + condition_system("expert")
+    assert sys_content == expected, (
+        f"With TOGETHER_RECAP=1, system must be _SYSTEM + conditioning.\n"
+        f"Expected: {expected!r}\nGot: {sys_content!r}"
+    )

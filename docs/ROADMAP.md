@@ -48,3 +48,56 @@ Results evidence: `docs/results/` (sweep-table.md is the scoreboard).
 - Claims require N≥5 with std. Failures are recorded verbatim next to wins.
 - Holo-3.1-4B as alternative student base: deferred until an A/B is worth the RunPod
   setup (revisit at student round 3).
+
+## Long-term arc (the comprehensive plan — quarters, not weeks)
+
+The end state from the original brainstorm: **an agent that catches on to any game
+quickly** — general (no per-game engineering), skilled (beats strong baselines), and
+eventually cooperative. The staged path there, with the measured boundaries each
+stage must break:
+
+### Horizon 1 — GameWorld mastery (current, ~weeks)
+Items 1–6 above. Exit criteria: >20/33 games onboarded; >5 duel wins; one student
+model that transfers to held-out GameWorld games it never trained on (the true
+generalization test — never yet run); co-op demo working.
+
+### Horizon 2 — Surpass the teacher (RL past imitation)
+Everything so far caps at the best teacher available. Paths past it, in cost order:
+1. **Ranking-function improvement**: tune planner scoring (or a small value net) via
+   CMA-ES/self-play against INDUCED world models — no GPUs, pure simulator rollouts.
+   The whole pipeline inherits improvements since the planner is the label source.
+2. **Full RECAP** (not -lite): iterative rounds — deploy student, collect its own
+   episodes, advantage-label, retrain. Games' verifiable rewards + free resets make
+   this cheaper than robotics. Needs the variance harness (done) to measure honestly.
+3. **Online RL** (PPO-class) against induced world models as simulators — only if
+   1–2 plateau; requires the sim-fidelity work below.
+Exit criteria: a student that beats ITS OWN teacher's mean on >half the games it
+trained on (doodle-jump already shows this is possible).
+
+### Horizon 3 — Beyond the state API (true generality)
+GameWorld exposes getState(); the real world doesn't. The StateSource seam was
+designed for this from day one:
+1. **Vision-derived state**: a VLM (or the student itself) emits structured state
+   from pixels; everything downstream (induction, planning, validation) unchanged.
+2. **Pixels-only games**: itch.io/CrazyGames titles with no API — onboarding via
+   vision-state + mouse/keyboard probing (mouse support lands in Horizon 1 item 2).
+3. **Time-aware world models**: predict(state, action, dt) — breaks the measured
+   wall-clock boundary (tetris gravity, runners) that blocks ~1/3 of induction.
+Exit criteria: one game with NO state API onboarded, induced, and dueled.
+
+### Horizon 4 — The foundation-model claim
+Consolidation: one model, many games, fast adaptation to new ones.
+1. **Multi-game student at scale**: train across every INDUCED game + reward-filtered
+   frontier trajectories elsewhere; measure few-shot adaptation (episodes-to-competence
+   on an unseen game) as the headline metric.
+2. **In-context game learning**: can the student, given a few exploration transitions
+   in-prompt, play a new game without weight updates? (The induction pipeline becomes
+   an inference-time tool.)
+3. **Writeup/artifact**: the full arc as a paper-style report — code-as-world-model
+   induction over a 33-game benchmark, honest boundary map, student-beats-teacher
+   distillation, RECAP-at-small-scale null — plus the repo as the reproducible artifact.
+
+### Non-goals (explicit, to protect focus)
+- Real-money game APIs, anti-cheat evasion, or multiplayer beyond the co-op demo.
+- Robotics transfer (π0.7 comparisons stay analogical).
+- Beating specialized game AI (Stockfish-class engines) — the claim is generality.

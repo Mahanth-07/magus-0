@@ -164,6 +164,17 @@ def test_explore_failure_gives_explore_failed():
     assert s["_calls"]["duel"] == []
 
 
+def test_explore_zero_transitions_gives_explore_failed():
+    """Explore with missing/empty transitions file must surface as EXPLORE_FAILED."""
+    def zero_explore(game):
+        raise RuntimeError("explore produced no transitions")
+
+    s = _stubs(explore=zero_explore)
+    rec = sweep_game("g", **{k: v for k, v in s.items() if not k.startswith("_")})
+    assert rec["verdict"] == "EXPLORE_FAILED"
+    assert "no transitions" in rec["error"]
+
+
 def test_induce_raises_gives_induction_failed():
     def bad_induce(game):
         raise ValueError("LLM error")

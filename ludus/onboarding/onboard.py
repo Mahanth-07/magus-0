@@ -52,4 +52,8 @@ def onboard_game(
         state_schema=report.state_schema,
     )
     profile.save(Path(out_dir) / f"{game_id}.json")
+    if not report.controls:
+        raise SystemExit(
+            f"no controls discovered for {game_id!r} — profile saved but unplayable"
+        )
     return profile

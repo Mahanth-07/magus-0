@@ -62,7 +62,12 @@ def main() -> None:
             t_path.unlink()
         cmd_explore(game, episodes=args.episodes, steps=args.steps,
                     duration_ms=30)
-        return sum(1 for _ in t_path.open())
+        if not t_path.exists():
+            raise RuntimeError(f"explore produced no transitions for {game!r}")
+        n = sum(1 for _ in t_path.open())
+        if n == 0:
+            raise RuntimeError(f"explore produced no transitions for {game!r}")
+        return n
 
     def induce(game):
         cmd_induce(game, max_iterations=args.iterations)

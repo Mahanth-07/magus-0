@@ -1,7 +1,9 @@
 """Explorer — uniform-random self-play that logs induction transitions."""
 
+import pytest
+
 from ludus.onboarding.profile import GameProfile
-from ludus.synthetic import GridWorldGame
+from ludus.synthetic import GridWorldGame, MenuGame
 from ludus.worldmodel.explore import explore_game
 from ludus.worldmodel.transitions import TransitionStore
 
@@ -87,3 +89,38 @@ def test_explore_ends_episode_on_terminal(tmp_path):
     assert len(ts) == 2                      # each episode ends on press 1
     assert all(t.terminal_after for t in ts)
     assert len({t.episode_id for t in ts}) == 2
+
+
+# --- wake-up and empty-controls guardrails -----------------------------------
+
+def _menu_profile() -> GameProfile:
+    return GameProfile(
+        game_id="synthetic:menu",
+        controls={"use_x": "x"},
+        control_effects={}, metrics=["score"], primary_metric="score",
+        higher_is_better=True, timing_ms=50, objective="test",
+        state_schema={},
+    )
+
+
+def test_explore_wakes_menu_game_before_episode(tmp_path):
+    """explore_game must press Enter to leave the menu before each episode."""
+    store = TransitionStore(tmp_path / "t.jsonl")
+    summary = explore_game(_menu_profile(), MenuGame, store=store,
+                           episodes=2, steps_per_episode=3, seed=1)
+    ts = store.load()
+    # All before-states must be "playing" (menu was exited)
+    assert all(t.before["status"] == "playing" for t in ts)
+    assert summary["transitions"] == 6
+
+
+def test_explore_raises_value_error_on_empty_controls(tmp_path):
+    empty_profile = GameProfile(
+        game_id="bad", controls={}, control_effects={},
+        metrics=[], primary_metric="score", higher_is_better=True,
+        timing_ms=50, objective="test", state_schema={},
+    )
+    store = TransitionStore(tmp_path / "t.jsonl")
+    with pytest.raises(ValueError, match="no controls"):
+        explore_game(empty_profile, MenuGame, store=store,
+                     episodes=1, steps_per_episode=1, seed=0)

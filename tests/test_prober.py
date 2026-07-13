@@ -1,8 +1,10 @@
 # tests/test_prober.py
 """ControlProber against synthetic ground truth."""
 
-from ludus.onboarding.prober import DEFAULT_PROBE_KEYS, ControlProber
-from ludus.synthetic import CounterGame, GridWorldGame
+import pytest
+
+from ludus.onboarding.prober import DEFAULT_PROBE_KEYS, WAKE_KEYS, ControlProber, ProbeReport
+from ludus.synthetic import CounterGame, GridWorldGame, MenuGame
 
 
 def test_discovers_gridworld_movement_controls_with_semantic_names():
@@ -47,3 +49,38 @@ def test_state_schema_captured():
     report = ControlProber(GridWorldGame, probe_keys=["ArrowRight"], ambient_window_s=0.0).probe()
     assert report.state_schema["metrics.score"] == "int"
     assert report.state_schema["game_state.player.x"] == "int"
+
+
+# --- wake-up phase -----------------------------------------------------------
+
+def test_wake_keys_constant_exists_and_includes_enter_and_space():
+    assert "Enter" in WAKE_KEYS
+    assert "Space" in WAKE_KEYS
+
+
+def test_probe_report_has_wake_key_field_default_none():
+    r = ProbeReport()
+    assert r.wake_key is None
+
+
+def test_prober_sets_wake_key_none_for_already_playing_game():
+    report = ControlProber(GridWorldGame, probe_keys=["ArrowRight"],
+                           ambient_window_s=0.0).probe()
+    assert report.wake_key is None
+
+
+def test_prober_discovers_controls_on_menu_game_with_enter_wake():
+    report = ControlProber(MenuGame, probe_keys=["x"], ambient_window_s=0.0).probe()
+    assert report.controls == {"use_x": "x"}
+    assert report.wake_key == "Enter"
+
+
+def test_prober_raises_runtime_error_when_no_wake_key_works():
+    class AlwaysMenuGame(MenuGame):
+        """Never transitions out of menu status regardless of input."""
+        def apply(self, command: dict) -> None:
+            pass  # always stays "menu"
+
+    with pytest.raises(RuntimeError, match="wake keys"):
+        ControlProber(AlwaysMenuGame, probe_keys=["x"],
+                      ambient_window_s=0.0).probe()

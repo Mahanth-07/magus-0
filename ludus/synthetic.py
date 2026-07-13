@@ -170,3 +170,31 @@ class CounterGame(_SyntheticBase):
                         "steps": self.steps},
             "game_state": {"player": {"health": self.health}},
         }
+
+
+class MenuGame(_SyntheticBase):
+    """Starts with status 'menu'; pressing Enter flips to 'playing'.
+    Once playing, behaves like CounterGame: 'x' increments score.
+    Used to test the prober's wake-up phase."""
+
+    def __init__(self) -> None:
+        self._status = "menu"
+        self.score = 0
+        self.steps = 0
+
+    def apply(self, command: dict) -> None:
+        key = command.get("key")
+        if self._status == "menu":
+            if key == "Enter":
+                self._status = "playing"
+            return
+        self.steps += 1
+        if key == "x":
+            self.score += 1
+
+    def raw_state(self) -> dict:
+        return {
+            "status": self._status,
+            "metrics": {"score": self.score, "steps": self.steps},
+            "game_state": {"player": {"score": self.score}},
+        }

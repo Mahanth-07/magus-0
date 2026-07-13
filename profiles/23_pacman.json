@@ -1,7 +1,51 @@
 {
   "game_id": "23_pacman",
-  "controls": {},
-  "control_effects": {},
+  "controls": {
+    "use_arrowleft": "ArrowLeft",
+    "use_arrowright": "ArrowRight",
+    "use_arrowup": "ArrowUp",
+    "use_arrowdown": "ArrowDown",
+    "use_space": "Space",
+    "use_d": "d"
+  },
+  "control_effects": {
+    "use_arrowleft": [
+      "debug.high_score",
+      "game_state.score",
+      "metrics.high_score",
+      "metrics.primary_score"
+    ],
+    "use_arrowright": [
+      "debug.high_score",
+      "game_state.score",
+      "metrics.high_score",
+      "metrics.primary_score"
+    ],
+    "use_arrowup": [
+      "debug.high_score",
+      "game_state.score",
+      "metrics.high_score",
+      "metrics.primary_score"
+    ],
+    "use_arrowdown": [
+      "debug.high_score",
+      "game_state.score",
+      "metrics.high_score",
+      "metrics.primary_score"
+    ],
+    "use_space": [
+      "debug.high_score",
+      "game_state.score",
+      "metrics.high_score",
+      "metrics.primary_score"
+    ],
+    "use_d": [
+      "debug.high_score",
+      "game_state.score",
+      "metrics.high_score",
+      "metrics.primary_score"
+    ]
+  },
   "metrics": [
     "attempts",
     "deaths",
@@ -12,7 +56,7 @@
   "primary_metric": "primary_score",
   "higher_is_better": true,
   "timing_ms": 120,
-  "objective": "You are playing 23_pacman. Maximize primary_score. Available controls: . Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "objective": "You are playing 23_pacman. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowright (ArrowRight), use_arrowup (ArrowUp), use_arrowdown (ArrowDown), use_space (Space), use_d (d). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
   "state_schema": {
     "schemaVersion": "str",
     "gameId": "str",

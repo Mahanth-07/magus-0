@@ -46,7 +46,19 @@ DEFAULT_PROBE_KEYS = [
 
 # Keys pressed during the wake-up phase to escape start/menu screens.
 # Order matters: tried in sequence, first success wins.
-WAKE_KEYS = ["Space", "Enter", "ArrowUp", "x"]
+# "mouse:*" are pseudo-keys handled by apply() as canvas clicks at various
+# positions — covers games that require a mouse click rather than a keyboard
+# key to leave the menu (core-ball, ovo, run-3, vex-3, worlds-hardest-game).
+WAKE_KEYS = [
+    "Space", "Enter", "ArrowUp", "x",
+    "mouse:center",  # core-ball, ovo
+    "mouse:top",     # run-3 (play button near top third)
+    "mouse:lower",   # worlds-hardest-game (click lower third)
+    "mouse:3q",      # vex-3 (3/4 height)
+]
+
+# Statuses that indicate the game is ready to accept agent input.
+ACTIONABLE_STATUSES = {"playing", "ready"}
 
 # Tick counters change on every apply(); never attribute them to a key.
 # _TICK_HINTS and _is_tick now live in diff.py (public TICK_HINTS / is_tick_path)
@@ -69,6 +81,15 @@ class ProbeReport:
 
 def _status(state: dict) -> str:
     return str(state.get("status", "playing"))
+
+
+def _is_actionable(state: dict) -> bool:
+    """Return True when the game is ready for agent input.
+
+    Accepts both 'playing' (the canonical active state) and 'ready' (games
+    like minesweeper that signal readiness before first input).
+    """
+    return _status(state) in ACTIONABLE_STATUSES
 
 
 def _is_tick(path: str) -> bool:
@@ -133,15 +154,16 @@ class ControlProber:
     # -- phases ---------------------------------------------------------------
 
     def _wake_up(self, client, report: ProbeReport):
-        """If the game is not 'playing', try WAKE_KEYS one by one.
+        """If the game is not actionable, try WAKE_KEYS one by one.
 
-        On first success (status flips to 'playing'), record report.wake_key
-        and return. If no key works, relaunch once and retry. If still not
-        playing after all keys + relaunch, raise RuntimeError.
+        Actionable means status in {'playing', 'ready'} (see ACTIONABLE_STATUSES).
+        On first success, record report.wake_key and return. If no key works,
+        relaunch once and retry. If still not actionable after all keys + relaunch,
+        raise RuntimeError.
 
-        No-op when the game is already 'playing' — existing games unaffected.
+        No-op when the game is already actionable — existing games unaffected.
         """
-        if _status(client.raw_state()) == "playing":
+        if _is_actionable(client.raw_state()):
             return client  # fast path
 
         for key in WAKE_KEYS:
@@ -152,7 +174,7 @@ class ControlProber:
                 log.warning("wake-up apply(%r) failed (%s)", key, exc)
                 continue
             time.sleep(0.5)
-            if _status(client.raw_state()) == "playing":
+            if _is_actionable(client.raw_state()):
                 report.wake_key = key
                 return client
 
@@ -166,12 +188,12 @@ class ControlProber:
                 log.warning("wake-up apply(%r) failed after relaunch (%s)", key, exc)
                 continue
             time.sleep(0.5)
-            if _status(client.raw_state()) == "playing":
+            if _is_actionable(client.raw_state()):
                 report.wake_key = key
                 return client
 
         raise RuntimeError(
-            f"game never reached 'playing' status (tried wake keys {WAKE_KEYS})"
+            f"game never reached actionable status (tried wake keys {WAKE_KEYS})"
         )
 
     def _relaunch(self, client, report: ProbeReport):
@@ -183,7 +205,7 @@ class ControlProber:
     def _scramble(self, client, effective_keys: list[str], report: ProbeReport):
         """Move the game into a different state using known-effective keys."""
         for k in effective_keys:
-            if _status(client.raw_state()) != "playing":
+            if not _is_actionable(client.raw_state()):
                 client = self._relaunch(client, report)
             try:
                 client.apply({"key": k, "duration_ms": self._duration_ms})
@@ -203,7 +225,7 @@ class ControlProber:
                     else (self._duration_ms + 100) / 1000.0)
         ambient: set[str] = set()
         for _ in range(self._repeats):
-            if _status(client.raw_state()) != "playing":
+            if not _is_actionable(client.raw_state()):
                 client = self._relaunch(client, report)
             before = flatten_state(client.raw_state())
             time.sleep(window_s)
@@ -217,7 +239,7 @@ class ControlProber:
         changed_counts: dict[str, int] = {}
         deltas: dict[str, list] = {}
         for _ in range(self._repeats):
-            if _status(client.raw_state()) != "playing":
+            if not _is_actionable(client.raw_state()):
                 client = self._relaunch(client, report)
             before = flatten_state(client.raw_state())
             try:

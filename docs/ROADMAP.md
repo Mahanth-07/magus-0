@@ -27,9 +27,14 @@ Results evidence: `docs/results/` (sweep-table.md is the scoreboard).
 
 1. **Finish onboarding round 1** — read re-sweep verdicts; graduate any new games
    through induce→duel automatically.
-2. **Client-level boot fixes** (new bucket found today): games hanging in
-   wait_until_actionable at connect (boxel, core-ball...) — needs canvas clicks or
-   status-agnostic boot; mouse support unlocks minesweeper-class games too.
+2. **Client-level boot fixes + mouse support** — DONE (2026-07-13). Added 15s
+   boot wait + keyboard/mouse wake sequence in `_connect()`, mouse pseudo-keys
+   in WAKE_KEYS, `_is_actionable()` accepting "ready"||"playing". 369→385 tests.
+   Net from sweep3: 4 of 9 boot-hung games escaped (core-ball DUEL_WON, ovo
+   DUEL_LOST, worlds-hardest-game DUEL_TIE, boxel-rebound INDUCTION_FAILED).
+   Remaining blocked: 3 mouse-only games (minesweeper, monkey-mart, run-3) need
+   DEFAULT_PROBE_KEYS mouse extension; vex-3 needs canvas-specific click coords;
+   pacman/worlds-hardest-game-2 hit the explore "ready" bug (fixed, need re-sweep).
 3. **Expert-only v2 ablation** — retrain student on expert-labeled episodes only,
    eval at N=5 (~$15). Tests whether novice rows diluted v2.
 4. **Scale teacher data + student round 3** — more games, longer horizons; consider

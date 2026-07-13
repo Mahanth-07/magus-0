@@ -11,7 +11,7 @@ from __future__ import annotations
 import random
 import time
 
-from ludus.onboarding.prober import WAKE_KEYS
+from ludus.onboarding.prober import WAKE_KEYS, _is_actionable
 from ludus.onboarding.profile import GameProfile
 from ludus.worldmodel.transitions import Transition, TransitionStore
 
@@ -44,9 +44,10 @@ def explore_game(
         episode_id = f"{profile.game_id}-explore-{seed}-{ep}"
         client = client_factory()
         try:
-            # Wake-up phase: if game is not playing yet, try WAKE_KEYS
+            # Wake-up phase: if game is not actionable yet, try WAKE_KEYS.
+            # Accepts both 'playing' and 'ready' as actionable (see _is_actionable).
             for wk in WAKE_KEYS:
-                if str(client.raw_state().get("status", "playing")) == "playing":
+                if _is_actionable(client.raw_state()):
                     break
                 try:
                     client.apply({"key": wk, "duration_ms": press_duration})
@@ -56,13 +57,13 @@ def explore_game(
 
             for step in range(steps_per_episode):
                 before = client.raw_state()
-                if str(before.get("status", "playing")) != "playing":
+                if not _is_actionable(before):
                     break
                 action = rng.choice(actions)
                 client.apply({"key": profile.controls[action],
                               "duration_ms": press_duration})
                 after = client.raw_state()
-                terminal = str(after.get("status", "playing")) != "playing"
+                terminal = not _is_actionable(after)
                 store.append(Transition(
                     game_id=profile.game_id, episode_id=episode_id, step=step,
                     action=action, key=profile.controls[action],

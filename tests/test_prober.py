@@ -3,8 +3,15 @@
 
 import pytest
 
-from ludus.onboarding.prober import DEFAULT_PROBE_KEYS, WAKE_KEYS, ControlProber, ProbeReport
-from ludus.synthetic import CounterGame, GridWorldGame, MenuGame
+from ludus.onboarding.prober import (
+    ACTIONABLE_STATUSES,
+    DEFAULT_PROBE_KEYS,
+    WAKE_KEYS,
+    ControlProber,
+    ProbeReport,
+    _is_actionable,
+)
+from ludus.synthetic import ClickMenuGame, CounterGame, GridWorldGame, MenuGame, ReadyGame
 
 
 def test_discovers_gridworld_movement_controls_with_semantic_names():
@@ -84,3 +91,43 @@ def test_prober_raises_runtime_error_when_no_wake_key_works():
     with pytest.raises(RuntimeError, match="wake keys"):
         ControlProber(AlwaysMenuGame, probe_keys=["x"],
                       ambient_window_s=0.0).probe()
+
+
+# --- new boot-fix behaviors ---------------------------------------------------
+
+def test_actionable_statuses_includes_playing_and_ready():
+    assert "playing" in ACTIONABLE_STATUSES
+    assert "ready" in ACTIONABLE_STATUSES
+
+
+def test_is_actionable_returns_true_for_playing():
+    assert _is_actionable({"status": "playing"}) is True
+
+
+def test_is_actionable_returns_true_for_ready():
+    assert _is_actionable({"status": "ready"}) is True
+
+
+def test_is_actionable_returns_false_for_menu():
+    assert _is_actionable({"status": "menu"}) is False
+
+
+def test_wake_keys_includes_mouse_center():
+    assert "mouse:center" in WAKE_KEYS
+
+
+def test_prober_accepts_ready_status_as_actionable():
+    """ReadyGame starts with status='ready'; prober must treat it as actionable
+    (no wake-up attempt) and discover controls normally."""
+    report = ControlProber(ReadyGame, probe_keys=["x"], ambient_window_s=0.0).probe()
+    assert report.controls == {"use_x": "x"}
+    assert report.wake_key is None  # already actionable, no wake needed
+
+
+def test_prober_wakes_click_menu_game_via_mouse_pseudo_key():
+    """ClickMenuGame only wakes on mouse:* keys. Prober must discover controls
+    despite the keyboard-only WAKE_KEYS being no-ops."""
+    report = ControlProber(ClickMenuGame, probe_keys=["x"], ambient_window_s=0.0).probe()
+    assert report.controls == {"use_x": "x"}
+    assert report.wake_key is not None
+    assert report.wake_key.startswith("mouse:")

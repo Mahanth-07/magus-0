@@ -198,3 +198,56 @@ class MenuGame(_SyntheticBase):
             "metrics": {"score": self.score, "steps": self.steps},
             "game_state": {"player": {"score": self.score}},
         }
+
+
+class ClickMenuGame(_SyntheticBase):
+    """Starts with status 'menu'; only a mouse click (key='mouse:center') wakes
+    it to 'playing'. All keyboard WAKE_KEYS are no-ops in menu state.
+    Once playing, behaves like CounterGame: 'x' increments score.
+    Used to test mouse-click wake-up."""
+
+    def __init__(self) -> None:
+        self._status = "menu"
+        self.score = 0
+        self.steps = 0
+
+    def apply(self, command: dict) -> None:
+        key = command.get("key", "")
+        if self._status == "menu":
+            if key.startswith("mouse:"):
+                self._status = "playing"
+            return
+        self.steps += 1
+        if key == "x":
+            self.score += 1
+
+    def raw_state(self) -> dict:
+        return {
+            "status": self._status,
+            "metrics": {"score": self.score, "steps": self.steps},
+            "game_state": {"player": {"score": self.score}},
+        }
+
+
+class ReadyGame(_SyntheticBase):
+    """Starts with status 'ready' (not 'playing'). Reflects games like
+    minesweeper that signal readiness as 'ready' before any input.
+    'x' increments score. Used to test 'ready' as an actionable status."""
+
+    def __init__(self) -> None:
+        self._status = "ready"
+        self.score = 0
+        self.steps = 0
+
+    def apply(self, command: dict) -> None:
+        key = command.get("key")
+        self.steps += 1
+        if key == "x":
+            self.score += 1
+
+    def raw_state(self) -> dict:
+        return {
+            "status": self._status,
+            "metrics": {"score": self.score, "steps": self.steps},
+            "game_state": {"player": {"score": self.score}},
+        }

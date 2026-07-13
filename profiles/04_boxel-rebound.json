@@ -1,0 +1,99 @@
+{
+  "game_id": "04_boxel-rebound",
+  "controls": {
+    "use_arrowleft": "ArrowLeft",
+    "use_arrowright": "ArrowRight",
+    "move_up": "ArrowUp",
+    "move_down": "ArrowDown",
+    "use_space": "Space",
+    "use_x": "x",
+    "use_z": "z",
+    "use_a": "a",
+    "move_down_d": "d",
+    "use_s": "s"
+  },
+  "control_effects": {
+    "use_arrowleft": [
+      "game_state.environment.camera_offset_x",
+      "game_state.player.vx"
+    ],
+    "use_arrowright": [
+      "game_state.environment.camera_offset_x",
+      "game_state.player.vx"
+    ],
+    "move_up": [
+      "game_state.player.jump_ready",
+      "game_state.player.y"
+    ],
+    "move_down": [
+      "game_state.player.y"
+    ],
+    "use_space": [
+      "game_state.player.jump_ready",
+      "game_state.player.y"
+    ],
+    "use_x": [
+      "game_state.environment.camera_offset_x",
+      "game_state.player.vx"
+    ],
+    "use_z": [
+      "game_state.environment.camera_offset_x",
+      "game_state.player.vx"
+    ],
+    "use_a": [
+      "game_state.player.y"
+    ],
+    "move_down_d": [
+      "game_state.player.y"
+    ],
+    "use_s": [
+      "game_state.environment.camera_offset_x",
+      "game_state.player.vx"
+    ]
+  },
+  "metrics": [
+    "distance",
+    "primary_score"
+  ],
+  "primary_metric": "primary_score",
+  "higher_is_better": true,
+  "timing_ms": 120,
+  "objective": "You are playing 04_boxel-rebound. Maximize primary_score. Available controls: use_arrowleft (ArrowLeft), use_arrowright (ArrowRight), move_up (ArrowUp), move_down (ArrowDown), use_space (Space), use_x (x), use_z (z), use_a (a), move_down_d (d), use_s (s). Each turn, return an \"actions\" sequence of 1-5 of these controls that makes progress toward maximizing primary_score.",
+  "state_schema": {
+    "schemaVersion": "str",
+    "gameId": "str",
+    "seed": "NoneType",
+    "timestampMs": "int",
+    "gameTimeMs": "int",
+    "status": "str",
+    "is_actionable": "bool",
+    "terminal.isTerminal": "bool",
+    "terminal.outcome": "NoneType",
+    "terminal.reason": "NoneType",
+    "game_state.score": "int",
+    "game_state.level": "int",
+    "game_state.player.x": "float",
+    "game_state.player.y": "float",
+    "game_state.player.vx": "float",
+    "game_state.player.state": "str",
+    "game_state.player.jump_ready": "bool",
+    "game_state.player.props.on_finish_tile": "bool",
+    "game_state.player.props.checkpoint_active": "bool",
+    "game_state.environment.level_width": "int",
+    "game_state.environment.map_rows": "int",
+    "game_state.environment.map_cols": "int",
+    "game_state.environment.camera_offset_x": "int",
+    "game_state.environment.speed_multiplier": "int",
+    "game_state.environment.gravity_multiplier": "int",
+    "game_state.completion_progress": "float",
+    "metrics.primary_score": "float",
+    "metrics.distance": "float",
+    "debug.view": "int",
+    "debug.dialog_state": "NoneType",
+    "debug.paused": "bool",
+    "debug.furthest_distance": "float",
+    "debug.last_reset_method": "NoneType",
+    "debug.requested_level": "NoneType",
+    "debug.requested_difficulty": "NoneType"
+  }
+}

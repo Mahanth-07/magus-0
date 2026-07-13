@@ -3,7 +3,7 @@
 import pytest
 
 from ludus.onboarding.profile import GameProfile
-from ludus.synthetic import GridWorldGame, MenuGame
+from ludus.synthetic import GridWorldGame, MenuGame, ReadyGame
 from ludus.worldmodel.explore import explore_game
 from ludus.worldmodel.transitions import TransitionStore
 
@@ -111,6 +111,29 @@ def test_explore_wakes_menu_game_before_episode(tmp_path):
     ts = store.load()
     # All before-states must be "playing" (menu was exited)
     assert all(t.before["status"] == "playing" for t in ts)
+    assert summary["transitions"] == 6
+
+
+def test_explore_handles_ready_status_as_actionable(tmp_path):
+    """Games that start with status='ready' must be explored normally.
+
+    Regression for pacman/minesweeper: before the fix, the per-step
+    `if not _is_actionable(before): break` check caused an immediate break
+    because 'ready' was treated as non-actionable, yielding 0 transitions.
+    """
+    profile = GameProfile(
+        game_id="synthetic:ready",
+        controls={"use_x": "x"},
+        control_effects={}, metrics=["score"], primary_metric="score",
+        higher_is_better=True, timing_ms=50, objective="test",
+        state_schema={},
+    )
+    store = TransitionStore(tmp_path / "t.jsonl")
+    summary = explore_game(profile, ReadyGame, store=store,
+                           episodes=2, steps_per_episode=3, seed=1)
+    ts = store.load()
+    # All before-states must have an actionable status (ready or playing)
+    assert all(t.before["status"] in ("ready", "playing") for t in ts)
     assert summary["transitions"] == 6
 
 

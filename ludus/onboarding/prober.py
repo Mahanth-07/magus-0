@@ -25,6 +25,7 @@ import logging
 import math
 import time
 from dataclasses import dataclass, field
+from typing import Optional
 
 from ludus.onboarding.diff import TICK_HINTS, diff_states, flatten_state, is_tick_path
 
@@ -43,6 +44,10 @@ DEFAULT_PROBE_KEYS = [
     "Space", "x", "z", "a", "d", "w", "s",
 ]
 
+# Keys pressed during the wake-up phase to escape start/menu screens.
+# Order matters: tried in sequence, first success wins.
+WAKE_KEYS = ["Space", "Enter", "ArrowUp", "x"]
+
 # Tick counters change on every apply(); never attribute them to a key.
 # _TICK_HINTS and _is_tick now live in diff.py (public TICK_HINTS / is_tick_path)
 # for parity with validation; keep module-level aliases so any external code
@@ -59,6 +64,7 @@ class ProbeReport:
     relaunches: int = 0
     apply_errors: int = 0
     second_chance: list[str] = field(default_factory=list)         # keys recovered via scramble
+    wake_key: Optional[str] = None                                  # key that woke the game from menu
 
 
 def _status(state: dict) -> str:
@@ -88,6 +94,7 @@ class ControlProber:
         report = ProbeReport()
         client = self._factory()
         try:
+            client = self._wake_up(client, report)   # no-op if already playing
             client, ambient = self._ambient_baseline(client, report)
             report.ambient_paths = sorted(ambient)
             report.state_schema = {
@@ -124,6 +131,48 @@ class ControlProber:
                 client.close()
 
     # -- phases ---------------------------------------------------------------
+
+    def _wake_up(self, client, report: ProbeReport):
+        """If the game is not 'playing', try WAKE_KEYS one by one.
+
+        On first success (status flips to 'playing'), record report.wake_key
+        and return. If no key works, relaunch once and retry. If still not
+        playing after all keys + relaunch, raise RuntimeError.
+
+        No-op when the game is already 'playing' — existing games unaffected.
+        """
+        if _status(client.raw_state()) == "playing":
+            return client  # fast path
+
+        for key in WAKE_KEYS:
+            try:
+                client.apply({"key": key, "duration_ms": self._duration_ms})
+            except Exception as exc:
+                report.apply_errors += 1
+                log.warning("wake-up apply(%r) failed (%s)", key, exc)
+                continue
+            time.sleep(0.5)
+            if _status(client.raw_state()) == "playing":
+                report.wake_key = key
+                return client
+
+        # One relaunch, then retry wake keys
+        client = self._relaunch(client, report)
+        for key in WAKE_KEYS:
+            try:
+                client.apply({"key": key, "duration_ms": self._duration_ms})
+            except Exception as exc:
+                report.apply_errors += 1
+                log.warning("wake-up apply(%r) failed after relaunch (%s)", key, exc)
+                continue
+            time.sleep(0.5)
+            if _status(client.raw_state()) == "playing":
+                report.wake_key = key
+                return client
+
+        raise RuntimeError(
+            f"game never reached 'playing' status (tried wake keys {WAKE_KEYS})"
+        )
 
     def _relaunch(self, client, report: ProbeReport):
         if hasattr(client, "close"):

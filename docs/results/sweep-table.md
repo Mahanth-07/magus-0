@@ -73,3 +73,10 @@ Corrections vs N=1 claims: the "student beats planner on 2048" was a planner low
 (106.8 vs 83) and is nearly deterministic everywhere (temp-0, std ~0) while the planner
 is high-variance. The distillation claim that survives: on 1 of 3 games the pixel-only
 student outplays its own raw-state teacher; on all games it is far more consistent.
+
+## Onboarding round 1 re-sweep (2026-07-13, sweep2.jsonl)
+
+Wake-up keys + guardrails GRADUATED 2 of 14 dead games all the way to duels:
+13_flappy-bird (INDUCED, DUEL_TIE) and 32_wordle (INDUCED, DUEL_TIE). Coverage
+now 14/33 INDUCED. Remaining 9 ONBOARD_FAILED are the deep bucket: client boot
+hangs (wait_until_actionable) and mouse-dependent games — Horizon-1 item 2.

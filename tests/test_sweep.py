@@ -164,6 +164,17 @@ def test_explore_failure_gives_explore_failed():
     assert s["_calls"]["duel"] == []
 
 
+def test_explore_zero_transitions_gives_explore_failed():
+    """Explore with missing/empty transitions file must surface as EXPLORE_FAILED."""
+    def zero_explore(game):
+        raise RuntimeError("explore produced no transitions")
+
+    s = _stubs(explore=zero_explore)
+    rec = sweep_game("g", **{k: v for k, v in s.items() if not k.startswith("_")})
+    assert rec["verdict"] == "EXPLORE_FAILED"
+    assert "no transitions" in rec["error"]
+
+
 def test_induce_raises_gives_induction_failed():
     def bad_induce(game):
         raise ValueError("LLM error")
@@ -284,3 +295,17 @@ def test_verdicts_constant_completeness():
     assert "ONBOARD_FAILED" in VERDICTS
     assert "INDUCTION_FAILED" in VERDICTS
     assert len(VERDICTS) == 8
+
+
+def test_onboard_systemexit_becomes_verdict_not_crash():
+    # onboard_game raises SystemExit on empty controls (CLI ergonomics);
+    # SystemExit is not an Exception subclass — the sweep must survive it
+    # (live bug: killed the re-sweep at game 4/14)
+    from ludus.sweep import sweep_game
+
+    def onboard(game):
+        raise SystemExit("no controls discovered")
+
+    record = sweep_game("g", onboard=onboard, explore=None, induce=None, duel=None)
+    assert record["verdict"] == "ONBOARD_FAILED"
+    assert "no controls" in record["error"]

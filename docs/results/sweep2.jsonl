@@ -1,0 +1,14 @@
+{"game": "04_boxel-rebound", "verdict": "ONBOARD_FAILED", "error": "TimeoutError: "}
+{"game": "07_chrome-dino", "controls": {"use_arrowup": "ArrowUp", "use_arrowdown": "ArrowDown", "use_space": "Space", "use_x": "x"}, "verdict": "EXPLORE_FAILED", "error": "RuntimeError: explore produced no transitions for '07_chrome-dino'"}
+{"game": "08_core-ball", "verdict": "ONBOARD_FAILED", "error": "TimeoutError: "}
+{"game": "13_flappy-bird", "controls": {"use_arrowleft": "ArrowLeft", "use_arrowup": "ArrowUp", "use_a": "a", "use_w": "w"}, "transitions": 54, "induction": {"status": "INDUCED", "overall": 0.7758620689655172, "primary_accuracy": 1.0, "iterations": 1}, "duel": {"planner": 0.0, "baseline": 0.0, "winner": "tie"}, "verdict": "DUEL_TIE"}
+{"game": "19_minesweeper", "verdict": "ONBOARD_FAILED", "error": "RuntimeError: game never reached 'playing' status (tried wake keys ['Space', 'Enter', 'ArrowUp', 'x'])"}
+{"game": "20_monkey-mart", "verdict": "ONBOARD_FAILED", "error": "SystemExit: no controls discovered for '20_monkey-mart' \u2014 profile saved but unplayable"}
+{"game": "22_ovo", "verdict": "ONBOARD_FAILED", "error": "TimeoutError: "}
+{"game": "23_pacman", "verdict": "ONBOARD_FAILED", "error": "SystemExit: no controls discovered for '23_pacman' \u2014 profile saved but unplayable"}
+{"game": "25_rocket-league-2d", "verdict": "ONBOARD_FAILED", "error": "RuntimeError: game never reached 'playing' status (tried wake keys ['Space', 'Enter', 'ArrowUp', 'x'])"}
+{"game": "26_run-3", "verdict": "ONBOARD_FAILED", "error": "TimeoutError: "}
+{"game": "30_vex-3", "verdict": "ONBOARD_FAILED", "error": "TimeoutError: "}
+{"game": "32_wordle", "controls": {"use_x": "x", "use_z": "z", "use_d": "d", "use_w": "w", "use_s": "s"}, "transitions": 96, "induction": {"status": "INDUCED", "overall": 0.951875, "primary_accuracy": 1.0, "iterations": 1}, "duel": {"planner": 0.0, "baseline": 0.0, "winner": "tie"}, "verdict": "DUEL_TIE"}
+{"game": "33_worlds-hardest-game", "verdict": "ONBOARD_FAILED", "error": "TimeoutError: "}
+{"game": "34_worlds-hardest-game-2", "verdict": "ONBOARD_FAILED", "error": "TimeoutError: "}

@@ -1,7 +1,7 @@
 # tests/test_synthetic_games.py
 """Synthetic games — deterministic ground truth for onboarding tests."""
 
-from ludus.synthetic import CounterGame, GridWorldGame, WallGame
+from ludus.synthetic import CounterGame, GridWorldGame, MenuGame, WallGame
 
 
 def _press(game, key):
@@ -140,3 +140,31 @@ def test_wallgame_right_is_noop_at_wall_until_left():
     assert g.raw_state()["game_state"]["player"]["x"] == 3
     _press(g, "ArrowRight")
     assert g.raw_state()["game_state"]["player"]["x"] == 4
+
+
+# --- MenuGame ----------------------------------------------------------------
+
+def test_menu_game_starts_in_menu_status():
+    g = MenuGame()
+    assert g.raw_state()["status"] == "menu"
+
+
+def test_menu_game_enter_flips_to_playing():
+    g = MenuGame()
+    _press(g, "Enter")
+    assert g.raw_state()["status"] == "playing"
+
+
+def test_menu_game_x_scores_once_playing():
+    g = MenuGame()
+    _press(g, "Enter")
+    _press(g, "x")
+    assert g.raw_state()["metrics"]["score"] == 1
+
+
+def test_menu_game_non_enter_keys_ignored_in_menu():
+    g = MenuGame()
+    _press(g, "ArrowUp")
+    assert g.raw_state()["status"] == "menu"
+    _press(g, "Space")
+    assert g.raw_state()["status"] == "menu"

@@ -9,7 +9,9 @@ and the next episode gets a fresh client."""
 from __future__ import annotations
 
 import random
+import time
 
+from ludus.onboarding.prober import WAKE_KEYS
 from ludus.onboarding.profile import GameProfile
 from ludus.worldmodel.transitions import Transition, TransitionStore
 
@@ -30,6 +32,9 @@ def explore_game(
     for turn-based games where key-repeat would fire multiple moves per press,
     contaminating induction transitions with multi-move dynamics.
     """
+    if not profile.controls:
+        raise ValueError(f"profile has no controls for {profile.game_id!r}")
+
     rng = random.Random(seed)
     actions = sorted(profile.controls)
     n_transitions = n_terminals = 0
@@ -39,6 +44,16 @@ def explore_game(
         episode_id = f"{profile.game_id}-explore-{seed}-{ep}"
         client = client_factory()
         try:
+            # Wake-up phase: if game is not playing yet, try WAKE_KEYS
+            for wk in WAKE_KEYS:
+                if str(client.raw_state().get("status", "playing")) == "playing":
+                    break
+                try:
+                    client.apply({"key": wk, "duration_ms": press_duration})
+                except Exception:
+                    pass
+                time.sleep(0.05)
+
             for step in range(steps_per_episode):
                 before = client.raw_state()
                 if str(before.get("status", "playing")) != "playing":

@@ -44,12 +44,12 @@ def sweep_game(game: str, *, onboard, explore, induce, duel) -> dict:
     record: dict = {"game": game}
     try:
         record["controls"] = onboard(game)
-    except Exception as exc:
+    except (Exception, SystemExit) as exc:
         record.update(verdict="ONBOARD_FAILED", error=_err(exc))
         return record
     try:
         record["transitions"] = explore(game)
-    except Exception as exc:
+    except (Exception, SystemExit) as exc:
         record.update(verdict="EXPLORE_FAILED", error=_err(exc))
         return record
     try:
@@ -57,7 +57,7 @@ def sweep_game(game: str, *, onboard, explore, induce, duel) -> dict:
         record["induction"] = {k: report.get(k) for k in
                                ("status", "overall", "primary_accuracy",
                                 "iterations")}
-    except Exception as exc:
+    except (Exception, SystemExit) as exc:
         record.update(verdict="INDUCTION_FAILED", error=_err(exc))
         return record
     if report.get("status") != "INDUCED":

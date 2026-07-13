@@ -1,10 +1,12 @@
 # tests/test_onboard_orchestrator.py
 """End-to-end offline onboarding: synthetic game -> GameProfile -> playable."""
 
+import pytest
+
 from ludus.adapters.generic import GenericAdapter
 from ludus.onboarding.onboard import onboard_game
 from ludus.onboarding.profile import GameProfile
-from ludus.synthetic import GridWorldGame
+from ludus.synthetic import CounterGame, GridWorldGame
 
 
 def test_onboard_gridworld_produces_complete_profile(tmp_path):
@@ -26,6 +28,21 @@ def test_onboard_gridworld_produces_complete_profile(tmp_path):
     assert "maximizeing" not in profile.objective
     # cached to disk
     assert GameProfile.load(tmp_path / "gridworld.json") == profile
+
+
+def test_onboard_empty_controls_saves_profile_then_raises(tmp_path):
+    """When probing discovers no controls, profile is saved (honest artifact)
+    but onboard_game raises SystemExit with a clear message."""
+    # ArrowLeft has no effect in CounterGame -> empty controls
+    with pytest.raises(SystemExit, match="no controls discovered"):
+        onboard_game(
+            "counter-empty", CounterGame,
+            probe_keys=["ArrowLeft"],   # no-op key only
+            out_dir=tmp_path,
+        )
+    # Profile must exist on disk (honest artifact)
+    saved = GameProfile.load(tmp_path / "counter-empty.json")
+    assert saved.controls == {}
 
 
 def test_onboarded_profile_drives_a_real_episode_offline(tmp_path):

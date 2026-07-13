@@ -334,3 +334,16 @@ POST /v1/endpoints {model, hardware:"1x_nvidia_h100_80gb_sxm",
 autoscaling:{min_replicas:1,max_replicas:1}}. Endpoint model name gets a suffix
 (...-3aa0e6fe) — use THAT as TOGETHER_MODEL. STOP endpoints after evals
 (DELETE /v1/endpoints/<id> or let inactivity timeout fire).
+
+### Student eval results (2026-07-12) + next
+
+Planner-vs-student duels (docs/results/sweep-table.md bottom): 2048 student WON
+68-56, doodle-jump TIE 67-67, stack planner 4-0. Student plays from screenshots
+only and beats the milestone's zero-shot gemini (56) on 2048. Endpoint DELETED
+after eval. NEXT (per roadmap spec): (1) RECAP-lite — advantage-conditioned SFT
+(value regressor on episode scores -> pos/neg labels -> conditioned training,
+deploy on "positive"); more teacher data first (episodes at 40+ steps, more
+games, include DUEL_LOST games where planner scores well at longer horizons);
+(2) onboarding robustness (14 sweep-dead games); (3) Holo-3.1-4B A/B (RunPod).
+Note: one suite flake if TOGETHER_MODEL is exported during pytest (available()
+gating test) — run tests in a clean shell.

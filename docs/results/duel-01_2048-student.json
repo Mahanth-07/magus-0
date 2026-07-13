@@ -1,0 +1,20 @@
+{
+  "game": "01_2048",
+  "steps": 15,
+  "primary_metric": "primary_score",
+  "planner": {
+    "provider": "planner",
+    "score": 56.0,
+    "legal_action_rate": 1.0,
+    "steps": 15,
+    "channel": "raw_state"
+  },
+  "baseline": {
+    "provider": "together",
+    "score": 68.0,
+    "legal_action_rate": 1.0,
+    "steps": 15,
+    "channel": "screenshot"
+  },
+  "winner": "baseline"
+}

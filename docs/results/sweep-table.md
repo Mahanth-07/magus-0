@@ -36,3 +36,12 @@
 
 Totals: DUEL_LOST=5, DUEL_TIE=4, DUEL_WON=3, EXPLORE_FAILED=6, INDUCTION_FAILED=7, ONBOARD_FAILED=8
 Totals: DUEL_LOST=5, DUEL_TIE=4, DUEL_WON=3, EXPLORE_FAILED=6, INDUCTION_FAILED=7, ONBOARD_FAILED=8
+
+## Student eval (2026-07-12): planner-teacher vs fine-tuned VLM student (15 steps)
+
+Student = Qwen3-VL-8B LoRA on 886 reward-filtered planner trajectories, screenshots only.
+| game | planner [raw_state] | student [screenshot] | winner |
+|---|---|---|---|
+| 01_2048 | 56 | 68 | student |
+| 10_doodle-jump | 67 | 67 | tie |
+| 27_stack | 4 | 0 | planner |

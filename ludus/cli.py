@@ -207,7 +207,7 @@ def main() -> None:
     ap.add_argument("game")
     ap.add_argument("mode", choices=["baseline", "memory"])
     ap.add_argument("--steps", type=int, default=8)
-    ap.add_argument("--provider", default="mock", choices=["mock", "gateway", "anthropic", "nebius", "fireworks", "fallback", "planner"])
+    ap.add_argument("--provider", default="mock", choices=["mock", "gateway", "anthropic", "nebius", "fireworks", "together", "fallback", "planner"])
     ap.add_argument("--fake", action="store_true", help="use FakeGameWorld (no browser)")
     ap.add_argument("--headed", action="store_true", help="show the browser window (great for demos)")
     ap.add_argument("--profile", type=Path, default=None,

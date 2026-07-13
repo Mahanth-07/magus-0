@@ -397,7 +397,34 @@ class GameWorldClient:
         )
         await self._mgr.start()
         # Gate on real readiness (status in {ready, playing}) before any input.
-        await self._mgr.wait_until_actionable(stage="boot")
+        # Use a shorter initial wait (15s) so we can attempt wake keys quickly.
+        ready = await self._mgr.wait_until_actionable(
+            stage="boot", timeout_s=15.0
+        )
+        if not ready:
+            # Game is stuck in menu/loading — try wake keys + mouse clicks.
+            # Mirrors the prober's _wake_up logic but in async context.
+            from ludus.onboarding.prober import WAKE_KEYS
+            log.info("boot: game not ready after 15s; attempting wake sequence")
+            for wake_key in WAKE_KEYS:
+                try:
+                    await self._apply({"key": wake_key})
+                except Exception as exc:  # noqa: BLE001
+                    log.debug("boot wake apply(%r) failed: %s", wake_key, exc)
+                await asyncio.sleep(0.5)
+                state = await self._mgr.get_game_state() or {}
+                status = state.get("status", "")
+                if status in ("ready", "playing"):
+                    log.info("boot: woke to %r via %r", status, wake_key)
+                    break
+            else:
+                # All wake keys failed — log and continue; if the game truly can't
+                # start, the first raw_state() / apply() call will surface the error.
+                log.warning(
+                    "boot: all wake keys exhausted and game still in status=%s; "
+                    "proceeding anyway (apply calls may fail)",
+                    (await self._mgr.get_game_state() or {}).get("status", "unknown"),
+                )
 
         # Partner-action recorder: capture ONLY the human partner's (Fireboy's) keys
         # — the arrow keys. Watergirl's keys (a/d/w), which the agent injects via
@@ -456,6 +483,13 @@ class GameWorldClient:
             log.warning("apply() got command with no 'key': %r", command)
             return
         duration_ms = command.get("duration_ms", self.timing_ms)
+
+        # Mouse pseudo-commands: "mouse:center", "mouse:top", "mouse:lower", "mouse:3q"
+        # Dispatch to page.mouse.click at canvas fractions; then settle.
+        if key.startswith("mouse:"):
+            await self._mouse_apply(key)
+            return
+
         kb = self._mgr.page.keyboard
         # Press the key held for duration_ms (down -> wait -> up), as the real game's
         # jaws.js input loop polls held keys; then let the game tick a moment so the
@@ -464,6 +498,40 @@ class GameWorldClient:
         await asyncio.sleep(duration_ms / 1000.0)
         await kb.up(key)
         await asyncio.sleep(0.1)
+
+    async def _mouse_apply(self, key: str) -> None:
+        """Handle mouse:* pseudo-commands by clicking at canvas fractions.
+
+        Supported positions:
+          mouse:center   — (w/2, h/2)   canvas center
+          mouse:top      — (w/2, h/3)   upper third (covers run-3 play button)
+          mouse:lower    — (w/2, 2h/3)  lower third
+          mouse:3q       — (w/2, 3h/4)  three-quarter height (covers vex-3)
+          mouse:<x>x<y>  — absolute pixel coords, e.g. "mouse:853x360"
+        """
+        page = self._mgr.page
+        vp = page.viewport_size or {}
+        w = vp.get("width") or 1280
+        h = vp.get("height") or 720
+        sub = key[len("mouse:"):]
+        if sub == "center":
+            cx, cy = w // 2, h // 2
+        elif sub == "top":
+            cx, cy = w // 2, h // 3
+        elif sub == "lower":
+            cx, cy = w // 2, 2 * h // 3
+        elif sub == "3q":
+            cx, cy = w // 2, 3 * h // 4
+        elif "x" in sub:
+            parts = sub.split("x", 1)
+            try:
+                cx, cy = int(parts[0]), int(parts[1])
+            except ValueError:
+                cx, cy = w // 2, h // 2
+        else:
+            cx, cy = w // 2, h // 2
+        await page.mouse.click(cx, cy)
+        await asyncio.sleep(0.15)
 
     def pause(self) -> None:
         """Freeze time-based game hooks (gravity etc.) during model inference.

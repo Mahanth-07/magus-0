@@ -59,3 +59,17 @@ Honest read: v2 (5.7x data + RECAP conditioning) did NOT beat v1 at 15-step duel
 doodle-jump regressed. Caveats: N=1 per cell (planner itself swung 67->107 across
 runs), and 42% novice rows may dilute despite conditioning. Next levers: repeated
 duels for variance, expert-only ablation, longer-horizon evals.
+
+## N=5 variance duels (planner vs student v1, 15 steps)
+
+| game | planner mean±std | student v1 mean±std | winner (means) |
+|---|---|---|---|
+| 01_2048 | 102.4±56.8 [56..172] | 68±0.0 | planner |
+| 10_doodle-jump | 83±19.6 | **106.8±0.4** | **student** |
+| 27_stack | 4.8±0.4 | 0±0.0 | planner |
+
+Corrections vs N=1 claims: the "student beats planner on 2048" was a planner low-roll
+(bimodal 56/172); at N=5 planner wins 2048. But the student WINS doodle-jump decisively
+(106.8 vs 83) and is nearly deterministic everywhere (temp-0, std ~0) while the planner
+is high-variance. The distillation claim that survives: on 1 of 3 games the pixel-only
+student outplays its own raw-state teacher; on all games it is far more consistent.

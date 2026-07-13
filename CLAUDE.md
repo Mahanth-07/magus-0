@@ -355,3 +355,11 @@ v2 model: mahanth1112_3532/Qwen3-VL-8B-Instruct-magus-student-v2-recap-2e645694
 docs/results/sweep-table.md). Both endpoints DELETED. Next: repeated-duel
 variance harness, expert-only ablation, then onboarding robustness (14 dead
 games). Check Together dashboard for v2 train cost before more fine-tunes.
+
+### N=5 variance results (2026-07-12) — corrected claims
+
+See sweep-table.md bottom. Student v1 WINS doodle-jump 106.8±0.4 vs planner 83±19.6;
+LOSES 2048 (68 vs 102.4±56.8 — earlier N=1 "student win" was planner low-roll) and
+stack. Student is near-deterministic; planner high-variance. Endpoints all deleted.
+NEXT: onboarding robustness (14 sweep-dead games) is now the top lever; then
+expert-only v2 ablation with N=5 eval; planner variance (2048 bimodality) worth a look.

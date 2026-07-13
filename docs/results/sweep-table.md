@@ -45,3 +45,17 @@ Student = Qwen3-VL-8B LoRA on 886 reward-filtered planner trajectories, screensh
 | 01_2048 | 56 | 68 | student |
 | 10_doodle-jump | 67 | 67 | tie |
 | 27_stack | 4 | 0 | planner |
+
+## Student v2 (RECAP-lite, 2026-07-12): 5038 rows (60 expert/44 novice episodes), expert-conditioned eval
+
+| game | planner | student v2 | (student v1) |
+|---|---|---|---|
+| 01_2048 | 56 | 68 | 68 |
+| 10_doodle-jump | 107 | 30 | 67 |
+| 27_stack | 4 | 0 | 0 |
+| 16_hextris | 0 | 0 | — |
+
+Honest read: v2 (5.7x data + RECAP conditioning) did NOT beat v1 at 15-step duels;
+doodle-jump regressed. Caveats: N=1 per cell (planner itself swung 67->107 across
+runs), and 42% novice rows may dilute despite conditioning. Next levers: repeated
+duels for variance, expert-only ablation, longer-horizon evals.

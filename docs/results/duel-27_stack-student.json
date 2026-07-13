@@ -1,0 +1,20 @@
+{
+  "game": "27_stack",
+  "steps": 15,
+  "primary_metric": "primary_score",
+  "planner": {
+    "provider": "planner",
+    "score": 4.0,
+    "legal_action_rate": 1.0,
+    "steps": 15,
+    "channel": "raw_state"
+  },
+  "baseline": {
+    "provider": "together",
+    "score": 0.0,
+    "legal_action_rate": 1.0,
+    "steps": 15,
+    "channel": "screenshot"
+  },
+  "winner": "planner"
+}

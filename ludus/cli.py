@@ -102,11 +102,59 @@ def cmd_induce(game: str, profile_path=None, data_dir="data",
         print(f"  worst field: {path} = {acc:.2f}")
 
 
+def _run_one_side(game: str, label: str, provider, adapter, profile,
+                  steps: int, runs_dir: str, headless: bool,
+                  repeat_idx: int = 0) -> dict:
+    """Run a single episode for one side of a duel. Returns per-episode info."""
+    episode_id = f"duel-{game}-{label}-r{repeat_idx}"
+    gw = _client_factory(game, timing_ms=profile.timing_ms, headless=headless)()
+    try:
+        result = run_episode(
+            adapter=adapter, provider=provider, gameworld=gw,
+            store=LocalStore(root=runs_dir), rulebook=Rulebook(),
+            mode="baseline", max_steps=steps,
+            episode_id=episode_id)
+    finally:
+        if hasattr(gw, "close"):
+            gw.close()
+    return {
+        "score": result.final_metrics.get(profile.primary_metric, 0.0),
+        "legal_action_rate": result.legal_action_rate,
+        "steps": result.steps,
+    }
+
+
+def _aggregate(episode_results: list[dict], provider_name: str, channel: str) -> dict:
+    """Aggregate multiple episode results into per-side stats."""
+    import math
+    scores = [r["score"] for r in episode_results]
+    mean = sum(scores) / len(scores)
+    std = math.sqrt(sum((s - mean) ** 2 for s in scores) / len(scores))
+    avg_legal = sum(r["legal_action_rate"] for r in episode_results) / len(episode_results)
+    avg_steps = sum(r["steps"] for r in episode_results) / len(episode_results)
+    return {
+        "provider": provider_name,
+        "score": mean,          # backward-compat: score == mean
+        "mean": mean,
+        "std": std,
+        "min": min(scores),
+        "max": max(scores),
+        "scores": scores,
+        "legal_action_rate": avg_legal,
+        "steps": avg_steps,
+        "channel": channel,
+    }
+
+
 def cmd_duel(game: str, profile_path=None, worldmodels_dir="worldmodels",
              steps=15, baseline_provider=None, baseline_name="gateway",
-             runs_dir="runs", headless: bool = True) -> dict:
+             runs_dir="runs", headless: bool = True,
+             repeats: int = 1) -> dict:
     """Planner (induced model) vs a baseline provider: same game, same step
-    budget, fresh client per side. Prints an honest table, persists the result."""
+    budget, fresh client per side. Prints an honest table, persists the result.
+
+    With repeats>1 each side is run `repeats` times; winner is decided on means.
+    """
     from ludus.planning.provider import PlannerProvider
 
     profile = GameProfile.load(profile_path or Path("profiles") / f"{game}.json")
@@ -117,40 +165,39 @@ def cmd_duel(game: str, profile_path=None, worldmodels_dir="worldmodels",
     _channels = {"planner": "raw_state", "baseline": "screenshot"}
     sides = {}
     for label, provider in (("planner", planner), ("baseline", baseline)):
-        gw = _client_factory(game, timing_ms=profile.timing_ms,
-                             headless=headless)()
-        try:
-            result = run_episode(
-                adapter=adapter, provider=provider, gameworld=gw,
-                store=LocalStore(root=runs_dir), rulebook=Rulebook(),
-                mode="baseline", max_steps=steps,
-                episode_id=f"duel-{game}-{label}")
-        finally:
-            if hasattr(gw, "close"):
-                gw.close()
-        sides[label] = {
-            "provider": getattr(provider, "name", label),
-            "score": result.final_metrics.get(profile.primary_metric, 0.0),
-            "legal_action_rate": result.legal_action_rate,
-            "steps": result.steps,
-            "channel": _channels[label],
-        }
+        episodes = [
+            _run_one_side(game, label, provider, adapter, profile,
+                          steps, runs_dir, headless, repeat_idx=r)
+            for r in range(repeats)
+        ]
+        sides[label] = _aggregate(
+            episodes,
+            provider_name=getattr(provider, "name", label),
+            channel=_channels[label],
+        )
 
-    p, b = sides["planner"]["score"], sides["baseline"]["score"]
-    better = p > b if profile.higher_is_better else p < b
-    winner = "planner" if better else ("baseline" if p != b else "tie")
-    out = {"game": game, "steps": steps,
+    p_mean = sides["planner"]["mean"]
+    b_mean = sides["baseline"]["mean"]
+    better = p_mean > b_mean if profile.higher_is_better else p_mean < b_mean
+    winner = "planner" if better else ("baseline" if p_mean != b_mean else "tie")
+
+    out = {"game": game, "steps": steps, "repeats": repeats,
            "primary_metric": profile.primary_metric,
            "planner": sides["planner"], "baseline": sides["baseline"],
            "winner": winner}
 
     channels = {"planner": "[raw_state]", "baseline": "[screenshot]"}
-    print(f"==== DUEL {game} ({steps} steps, metric={profile.primary_metric}) ====")
+    print(f"==== DUEL {game} ({steps} steps x{repeats}, metric={profile.primary_metric}) ====")
     for label in ("planner", "baseline"):
         s = sides[label]
-        print(f"  {label:9s} ({s['provider']:8s}): {profile.primary_metric}="
-              f"{s['score']:g}  legal_rate={s['legal_action_rate']:.2f}  "
-              f"{channels[label]}")
+        if repeats > 1:
+            print(f"  {label:9s} ({s['provider']:8s}): {profile.primary_metric}="
+                  f"{s['mean']:g}±{s['std']:.2f}  scores={s['scores']}  "
+                  f"legal_rate={s['legal_action_rate']:.2f}  {channels[label]}")
+        else:
+            print(f"  {label:9s} ({s['provider']:8s}): {profile.primary_metric}="
+                  f"{s['score']:g}  legal_rate={s['legal_action_rate']:.2f}  "
+                  f"{channels[label]}")
     print(f"  winner: {winner}")
 
     dest = Path(runs_dir) / f"duel-{game}.json"
@@ -197,10 +244,13 @@ def main() -> None:
             ap.add_argument("--steps", type=int, default=15)
             ap.add_argument("--baseline", default="gateway")
             ap.add_argument("--headed", action="store_true")
+            ap.add_argument("--repeats", type=int, default=1,
+                            help="run each side N times; winner decided on means")
             args = ap.parse_args(sys.argv[2:])
             cmd_duel(args.game, profile_path=args.profile,
                      worldmodels_dir=args.worldmodels, steps=args.steps,
-                     baseline_name=args.baseline, headless=not args.headed)
+                     baseline_name=args.baseline, headless=not args.headed,
+                     repeats=args.repeats)
         return
 
     ap = argparse.ArgumentParser()

@@ -295,3 +295,17 @@ def test_verdicts_constant_completeness():
     assert "ONBOARD_FAILED" in VERDICTS
     assert "INDUCTION_FAILED" in VERDICTS
     assert len(VERDICTS) == 8
+
+
+def test_onboard_systemexit_becomes_verdict_not_crash():
+    # onboard_game raises SystemExit on empty controls (CLI ergonomics);
+    # SystemExit is not an Exception subclass — the sweep must survive it
+    # (live bug: killed the re-sweep at game 4/14)
+    from ludus.sweep import sweep_game
+
+    def onboard(game):
+        raise SystemExit("no controls discovered")
+
+    record = sweep_game("g", onboard=onboard, explore=None, induce=None, duel=None)
+    assert record["verdict"] == "ONBOARD_FAILED"
+    assert "no controls" in record["error"]

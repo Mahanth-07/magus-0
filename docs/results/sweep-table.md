@@ -110,3 +110,18 @@ hit the explore "ready" bug fixed mid-sweep; require re-sweep.
 
 INDUCED coverage: 14 → 16 (added core-ball, ovo, worlds-hardest-game; boxel-rebound
 INDUCTION_FAILED counts as partial progress).
+
+## Tie-break round (40 steps × 3 repeats, 2026-07-13)
+
+| game | planner | gateway | verdict |
+|---|---|---|---|
+| 16_hextris | 78±17 | 107±25 | baseline |
+| 31_wolf3d | 0±0 | 0.7±0.9 | baseline |
+| 18_minecraft | 124±0 | 124±0 | structural tie (metric accrues identically) |
+| 33_whg | 1±0 | 1±0 | structural tie |
+| 17_mario, 13_flappy, 32_wordle | 0±0 | 0±0 | structural tie (metric never moves) |
+
+Finding: longer horizons resolved 2/7 ties (both planner losses). The other 5 are
+STRUCTURAL: the primary metric never moves (or moves identically) under either agent —
+wrong metric choice or missing action vocabulary (wordle needs typing; mario/flappy die
+instantly). This is an onboarding-quality issue, not a planning one.

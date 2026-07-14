@@ -363,3 +363,15 @@ LOSES 2048 (68 vs 102.4±56.8 — earlier N=1 "student win" was planner low-roll
 stack. Student is near-deterministic; planner high-variance. Endpoints all deleted.
 NEXT: onboarding robustness (14 sweep-dead games) is now the top lever; then
 expert-only v2 ablation with N=5 eval; planner variance (2048 bimodality) worth a look.
+
+### v3 ablation status (2026-07-14) — EVAL INVALID, MODEL READY
+
+v3-expert fine-tune COMPLETED: model
+mahanth1112_3532/Qwen3-VL-8B-Instruct-magus-student-v3-expert-f657518c
+(2734 expert-only rows, unconditioned prompts). BUT the eval script grabbed
+fine-tunes data[0] which returned V2 — the recorded N=5 duels re-tested v2
+unconditioned (v2 numbers anyway useful: 2048 62.4±11, doodle 60.2±29,
+stack 0; planner won all 3). TODO NEXT SESSION: provision endpoint for the
+v3 model id above, run N=5 duels on 01_2048/10_doodle-jump/27_stack vs
+planner, record as v3, compare v1 (doodle 106.8±0.4) / v2. All endpoints
+currently DELETED. Fix scripts/-style data[0] grabs: match by suffix.

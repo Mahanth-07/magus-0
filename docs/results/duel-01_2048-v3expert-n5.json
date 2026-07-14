@@ -1,0 +1,43 @@
+{
+  "game": "01_2048",
+  "steps": 15,
+  "repeats": 5,
+  "primary_metric": "primary_score",
+  "planner": {
+    "provider": "planner",
+    "score": 79.2,
+    "mean": 79.2,
+    "std": 46.4,
+    "min": 56.0,
+    "max": 172.0,
+    "scores": [
+      172.0,
+      56.0,
+      56.0,
+      56.0,
+      56.0
+    ],
+    "legal_action_rate": 1.0,
+    "steps": 15.0,
+    "channel": "raw_state"
+  },
+  "baseline": {
+    "provider": "together",
+    "score": 62.4,
+    "mean": 62.4,
+    "std": 11.200000000000001,
+    "min": 40.0,
+    "max": 68.0,
+    "scores": [
+      68.0,
+      68.0,
+      40.0,
+      68.0,
+      68.0
+    ],
+    "legal_action_rate": 1.0,
+    "steps": 15.0,
+    "channel": "screenshot"
+  },
+  "winner": "planner"
+}

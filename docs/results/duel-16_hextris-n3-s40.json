@@ -1,0 +1,39 @@
+{
+  "game": "16_hextris",
+  "steps": 40,
+  "repeats": 3,
+  "primary_metric": "primary_score",
+  "planner": {
+    "provider": "planner",
+    "score": 78.0,
+    "mean": 78.0,
+    "std": 16.97056274847714,
+    "min": 54.0,
+    "max": 90.0,
+    "scores": [
+      54.0,
+      90.0,
+      90.0
+    ],
+    "legal_action_rate": 1.0,
+    "steps": 40.0,
+    "channel": "raw_state"
+  },
+  "baseline": {
+    "provider": "gateway",
+    "score": 107.33333333333333,
+    "mean": 107.33333333333333,
+    "std": 24.513035081133644,
+    "min": 90.0,
+    "max": 142.0,
+    "scores": [
+      90.0,
+      90.0,
+      142.0
+    ],
+    "legal_action_rate": 1.0,
+    "steps": 40.0,
+    "channel": "screenshot"
+  },
+  "winner": "baseline"
+}

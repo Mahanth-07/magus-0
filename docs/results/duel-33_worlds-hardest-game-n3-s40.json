@@ -1,0 +1,39 @@
+{
+  "game": "33_worlds-hardest-game",
+  "steps": 40,
+  "repeats": 3,
+  "primary_metric": "primary_score",
+  "planner": {
+    "provider": "planner",
+    "score": 1.0,
+    "mean": 1.0,
+    "std": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "scores": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "legal_action_rate": 1.0,
+    "steps": 40.0,
+    "channel": "raw_state"
+  },
+  "baseline": {
+    "provider": "gateway",
+    "score": 1.0,
+    "mean": 1.0,
+    "std": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "scores": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "legal_action_rate": 1.0,
+    "steps": 40.0,
+    "channel": "screenshot"
+  },
+  "winner": "tie"
+}

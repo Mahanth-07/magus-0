@@ -148,3 +148,21 @@ Compare: v1 doodle 106.8±0.4 (beat planner); v2 unconditioned doodle 60.2±28.7
 106.8±0.4). Novice-row dilution was NOT v2's problem — both retrains underperform v1.
 **v1 (886 reward-filtered rows) remains the best student.** Clean finding: at this
 scale, the small focused first recipe beats 3-6x more data under either labeling scheme.
+
+## v4 (16-game corpus, core-ball HELD OUT) — N=5, 2026-07-14
+
+```
+==== DUEL 01_2048 (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=56±0.00  scores=[56.0, 56.0, 56.0, 56.0, 56.0]  legal_rate=1.00  [raw_state]
+  baseline  (together): primary_score=44±0.00  scores=[44.0, 44.0, 44.0, 44.0, 44.0]  legal_rate=1.00  [screenshot]
+  winner: planner
+==== DUEL 10_doodle-jump (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=99±16.00  scores=[107.0, 107.0, 67.0, 107.0, 107.0]  legal_rate=1.00  [raw_state]
+  baseline  (together): primary_score=37.4±14.80  scores=[30.0, 30.0, 30.0, 30.0, 67.0]  legal_rate=1.00  [screenshot]
+  winner: planner
+==== DUEL 08_core-ball (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=3±0.00  scores=[3.0, 3.0, 3.0, 3.0, 3.0]  legal_rate=1.00  [raw_state]
+  baseline  (together): primary_score=6.6±2.80  scores=[8.0, 8.0, 8.0, 8.0, 1.0]  legal_rate=1.00  [screenshot]
+  winner: baseline
+```
+08_core-ball is the TRANSFER TEST: the student never trained on it.

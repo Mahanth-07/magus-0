@@ -382,3 +382,10 @@ data scale/labeling not the lever at this size; v1's 886-row reward-filtered
 recipe stands. Next levers (ROADMAP): student round 3 = more GAMES (16 INDUCED
 now vs 13 at v1 collection) + held-out transfer test; or CMA-ES teacher
 improvement (Horizon 2); or Stage 5 co-op. All endpoints deleted.
+
+### Round-3 collection launched (2026-07-14)
+collect_trajectories --episodes 5 --steps 40 across all 16 INDUCED games ->
+runs/traj-*. NEXT SESSION: build_dataset(min_final_score=1.0) -> v4 recipe =
+v1's (reward-filtered, no conditioning); HOLD OUT one game (e.g. 08_core-ball)
+from training entirely; fine-tune; N=5 eval incl. the held-out game (first
+transfer test). Together model naming: match by suffix, never data[0].

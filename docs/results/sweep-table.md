@@ -166,3 +166,9 @@ scale, the small focused first recipe beats 3-6x more data under either labeling
   winner: baseline
 ```
 08_core-ball is the TRANSFER TEST: the student never trained on it.
+
+**v4 verdict — FIRST TRANSFER RESULT:** on held-out core-ball (never in training),
+v4 scored 6.6±2.8 vs the planner's 3±0 — the student BEAT the planner on a game it
+never saw, while regressing on trained games (2048 44 vs v1's 68; doodle 37 vs 106.8).
+Multi-game training traded per-game peak for cross-game generalization. First evidence
+for the Horizon-4 claim.

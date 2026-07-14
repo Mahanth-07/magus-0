@@ -389,3 +389,9 @@ runs/traj-*. NEXT SESSION: build_dataset(min_final_score=1.0) -> v4 recipe =
 v1's (reward-filtered, no conditioning); HOLD OUT one game (e.g. 08_core-ball)
 from training entirely; fine-tune; N=5 eval incl. the held-out game (first
 transfer test). Together model naming: match by suffix, never data[0].
+
+### v4 transfer result (2026-07-14): GENERALIZATION DEMONSTRATED
+v4 (15-game training, core-ball held out) BEAT planner on unseen core-ball
+6.6±2.8 vs 3±0; regressed on trained games vs v1. Trade-off: breadth vs peak.
+Next levers: per-game LoRAs vs one generalist?; more transfer holdouts to
+confirm; Stage 5 co-op; writeup now has its arc-completing result.

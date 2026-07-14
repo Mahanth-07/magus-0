@@ -125,3 +125,21 @@ Finding: longer horizons resolved 2/7 ties (both planner losses). The other 5 ar
 STRUCTURAL: the primary metric never moves (or moves identically) under either agent —
 wrong metric choice or missing action vocabulary (wordle needs typing; mario/flappy die
 instantly). This is an onboarding-quality issue, not a planning one.
+
+## v3-expert N=5 duels (2026-07-14, corrected eval — model verified v3)
+
+```
+==== DUEL 01_2048 (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=102.4±56.83  scores=[172.0, 172.0, 56.0, 56.0, 56.0]  legal_rate=1.00  [raw_state]
+  baseline  (together): primary_score=8±0.00  scores=[8.0, 8.0, 8.0, 8.0, 8.0]  legal_rate=1.00  [screenshot]
+  winner: planner
+==== DUEL 10_doodle-jump (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=30±0.00  scores=[30.0, 30.0, 30.0, 30.0, 30.0]  legal_rate=1.00  [raw_state]
+  baseline  (together): primary_score=68.2±34.44  scores=[107.0, 67.0, 30.0, 107.0, 30.0]  legal_rate=1.00  [screenshot]
+  winner: baseline
+==== DUEL 27_stack (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=4.4±0.49  scores=[4.0, 4.0, 5.0, 4.0, 5.0]  legal_rate=1.00  [raw_state]
+  baseline  (together): primary_score=0±0.00  scores=[0.0, 0.0, 0.0, 0.0, 0.0]  legal_rate=1.00  [screenshot]
+  winner: planner
+```
+Compare: v1 doodle 106.8±0.4 (beat planner); v2 unconditioned doodle 60.2±28.7.

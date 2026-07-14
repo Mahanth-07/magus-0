@@ -5,14 +5,14 @@
   "primary_metric": "primary_score",
   "planner": {
     "provider": "planner",
-    "score": 79.2,
-    "mean": 79.2,
-    "std": 46.4,
+    "score": 102.4,
+    "mean": 102.4,
+    "std": 56.82816203256973,
     "min": 56.0,
     "max": 172.0,
     "scores": [
       172.0,
-      56.0,
+      172.0,
       56.0,
       56.0,
       56.0
@@ -23,17 +23,17 @@
   },
   "baseline": {
     "provider": "together",
-    "score": 62.4,
-    "mean": 62.4,
-    "std": 11.200000000000001,
-    "min": 40.0,
-    "max": 68.0,
+    "score": 8.0,
+    "mean": 8.0,
+    "std": 0.0,
+    "min": 8.0,
+    "max": 8.0,
     "scores": [
-      68.0,
-      68.0,
-      40.0,
-      68.0,
-      68.0
+      8.0,
+      8.0,
+      8.0,
+      8.0,
+      8.0
     ],
     "legal_action_rate": 1.0,
     "steps": 15.0,

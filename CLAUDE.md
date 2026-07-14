@@ -375,3 +375,10 @@ stack 0; planner won all 3). TODO NEXT SESSION: provision endpoint for the
 v3 model id above, run N=5 duels on 01_2048/10_doodle-jump/27_stack vs
 planner, record as v3, compare v1 (doodle 106.8±0.4) / v2. All endpoints
 currently DELETED. Fix scripts/-style data[0] grabs: match by suffix.
+
+### Ablation concluded (2026-07-14): v1 REMAINS BEST STUDENT
+v3-expert regressed (2048: 8±0!; doodle 68±34). v2 null + v3 regression =>
+data scale/labeling not the lever at this size; v1's 886-row reward-filtered
+recipe stands. Next levers (ROADMAP): student round 3 = more GAMES (16 INDUCED
+now vs 13 at v1 collection) + held-out transfer test; or CMA-ES teacher
+improvement (Horizon 2); or Stage 5 co-op. All endpoints deleted.

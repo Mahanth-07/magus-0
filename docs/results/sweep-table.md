@@ -143,3 +143,8 @@ instantly). This is an onboarding-quality issue, not a planning one.
   winner: planner
 ```
 Compare: v1 doodle 106.8±0.4 (beat planner); v2 unconditioned doodle 60.2±28.7.
+
+**Ablation verdict:** v3-expert REGRESSED (2048 collapsed 68→8; doodle 68±34 vs v1's
+106.8±0.4). Novice-row dilution was NOT v2's problem — both retrains underperform v1.
+**v1 (886 reward-filtered rows) remains the best student.** Clean finding: at this
+scale, the small focused first recipe beats 3-6x more data under either labeling scheme.

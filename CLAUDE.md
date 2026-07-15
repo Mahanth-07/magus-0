@@ -395,3 +395,12 @@ v4 (15-game training, core-ball held out) BEAT planner on unseen core-ball
 6.6±2.8 vs 3±0; regressed on trained games vs v1. Trade-off: breadth vs peak.
 Next levers: per-game LoRAs vs one generalist?; more transfer holdouts to
 confirm; Stage 5 co-op; writeup now has its arc-completing result.
+
+### v5 replication BLOCKED (2026-07-14)
+v5-doodle fine-tune job never appeared in fine-tunes list ("creating LoRA
+job" then nothing) — LIKELY OUT OF TOGETHER CREDITS (v2/v3/v4 trains +
+endpoint hours consumed the balance; script swallowed the create error).
+NEXT SESSION: user checks Together dashboard balance/tops up; then re-run
+/tmp/v5.sh (self-finalizing, two holdouts: doodle-jump, ovo). Also surface
+finetune-create errors loudly (drop the tail -2). Transfer finding stands
+at N=1 holdout (core-ball) pending replication.

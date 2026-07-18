@@ -404,3 +404,8 @@ NEXT SESSION: user checks Together dashboard balance/tops up; then re-run
 /tmp/v5.sh (self-finalizing, two holdouts: doodle-jump, ovo). Also surface
 finetune-create errors loudly (drop the tail -2). Transfer finding stands
 at N=1 holdout (core-ball) pending replication.
+
+### Commit policy (2026-07-18, user request)
+Do NOT add "Co-Authored-By: Claude" (or any Claude/AI trailer) to commits in
+this repo. History was rewritten 2026-07-18 to strip all 112 existing
+trailers (local backup: branch backup-pre-strip). Plain commit messages only.

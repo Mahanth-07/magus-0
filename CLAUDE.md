@@ -440,3 +440,16 @@ Call the ADAPTER inference name (e.g. mahanth1112-3532/magus-v5-doodle) at
 retry until gone), then rm <ep_>. Working script: /tmp/v5f.sh. doodle adapter
 already registered/uploaded (ml_CdHXAPHgrZVsqeDebgzQD); ovo still needs
 training (v5-ovo fine-tune never created). Base Qwen3-VL-8B ml_: ml_Cbuqi7hFc4HMA3euHXFSV.
+
+
+### v5 serving — decision (2026-07-22): USE DASHBOARD, automation deferred
+--enable-lora got the base endpoint LoRA-ready but the adapter STILL 404s
+("Unable to access model mahanth1112-3532/magus-v5-doodle") — the attach-adapter
+deploy step errored (adapters may need a distinct link/registration on v2 not yet
+found). Burned ~$X and many turns on API archaeology. DECISION: for v5 replication,
+deploy via Together DASHBOARD (Deploy-adapter-to-endpoint dialog handles attach),
+then run: TOGETHER_MODEL=<served-name> python -m ludus.cli duel 10_doodle-jump
+--steps 15 --repeats 5 --baseline together. Cracking the CLI attach fully is a
+fresh-context task (check `together beta endpoints deploy` adapter path + whether
+adapter needs same base ml_ lineage as the endpoint's base). v4 core-ball transfer
+(6.6 vs 3, N=1) STANDS as the headline transfer result.

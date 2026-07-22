@@ -409,3 +409,24 @@ at N=1 holdout (core-ball) pending replication.
 Do NOT add "Co-Authored-By: Claude" (or any Claude/AI trailer) to commits in
 this repo. History was rewritten 2026-07-18 to strip all 112 existing
 trailers (local backup: branch backup-pre-strip). Plain commit messages only.
+
+### Together v2 migration recipe (2026-07-22) — LoRA serving CHANGED
+Together deprecated v1 endpoint create. New flow for serving a fine-tuned LoRA:
+1. NEW API KEY needed (old key lacks v2 create scope). Set TOGETHER_PROJECT_ID
+   (get via `together whoami`: proj_Cciv33iZoFEoSaSoEMwDR).
+2. Base model ml_ id for Qwen3-VL-8B-Instruct: ml_Cbuqi7hFc4HMA3euHXFSV
+   (from `together beta models public --json`, field baseModelId).
+3. Download adapter: `together fine-tuning download <ft-id> --checkpoint-type adapter`
+   -> .tar.zst; extract.
+4. Register + upload: `together beta models create --name X --base-model <base ml_>
+   --type adapter --non-interactive`; `together beta models upload <ml_id> <dir>`.
+5. Deploy: `together beta endpoints deploy --endpoint <name> --min-replicas 1
+   --max-replicas 1 <adapter ml_id>`.
+6. TEARDOWN (two-step): `together beta endpoints rm <dep_id>` (scales to 0, wait),
+   then again, then `rm <ep_id>`.
+UNSOLVED: the deploy attached only the BASE model as a deployment; the adapter
+did NOT serve (calling mahanth1112-3532/magus-v5-doodle => "Unable to access
+model"; endpoint string served base Qwen). NEXT: figure out multi-LoRA attach —
+likely `beta endpoints deploy` needs the adapter as a SECOND deployment onto the
+running base endpoint, or a --lora flag. Until solved, v5 transfer replication
+is BLOCKED. v4 core-ball transfer result (student 6.6 vs planner 3) STANDS at N=1.

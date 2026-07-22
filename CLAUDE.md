@@ -430,3 +430,13 @@ model"; endpoint string served base Qwen). NEXT: figure out multi-LoRA attach â€
 likely `beta endpoints deploy` needs the adapter as a SECOND deployment onto the
 running base endpoint, or a --lora flag. Until solved, v5 transfer replication
 is BLOCKED. v4 core-ball transfer result (student 6.6 vs planner 3) STANDS at N=1.
+
+### Together v2 LoRA serving SOLVED (2026-07-22): --enable-lora
+Multi-LoRA = deploy base WITH --enable-lora, THEN attach adapter:
+  together beta endpoints deploy <BASE ml_> --endpoint NAME --enable-lora --min-replicas 1 --max-replicas 1
+  together beta endpoints deploy <ADAPTER ml_> --endpoint NAME
+Call the ADAPTER inference name (e.g. mahanth1112-3532/magus-v5-doodle) at
+/v1/chat/completions. Smoke-gate before eval. Teardown: rm <dep_> (drains to 0,
+retry until gone), then rm <ep_>. Working script: /tmp/v5f.sh. doodle adapter
+already registered/uploaded (ml_CdHXAPHgrZVsqeDebgzQD); ovo still needs
+training (v5-ovo fine-tune never created). Base Qwen3-VL-8B ml_: ml_Cbuqi7hFc4HMA3euHXFSV.

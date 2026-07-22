@@ -453,3 +453,19 @@ then run: TOGETHER_MODEL=<served-name> python -m ludus.cli duel 10_doodle-jump
 fresh-context task (check `together beta endpoints deploy` adapter path + whether
 adapter needs same base ml_ lineage as the endpoint's base). v4 core-ball transfer
 (6.6 vs 3, N=1) STANDS as the headline transfer result.
+
+
+### v5 serving — STOPPED chasing API (2026-07-23)
+6 distinct Together-v2 failures burned; adapter never served via CLI. Endpoints
+ALWAYS ended at 0 (no leaked billing). Confirmed working pieces: new key + project
+id (proj_Cciv33iZoFEoSaSoEMwDR), base deploy with --enable-lora reaches
+DEPLOYMENT_STATE_READY, adapter registered/uploaded. UNTESTED hypothesis (likely
+fix): our adapter's base lineage (ml_Cbuqi7hFc4HMA3euHXFSV) != the endpoint's
+deployed base (Qwen3-VL-8B-Instruct-BF16) — re-register adapter under the BF16
+base id, then attach. A correct script must CREATE a fresh base endpoint (not
+hardcode a stale ep_), use trap teardown EXIT, match state "READY". 
+DECISION: v5 replication is OPTIONAL (transfer already shown N=1 on core-ball).
+Two unblock paths: (a) user dashboard-deploys the doodle adapter, gives served
+name, I run the N=5 duel; (b) fresh-context session cracks the BF16-lineage attach.
+HIGHER-VALUE roadmap items need NO Together: CMA-ES teacher tuning (Horizon 2, pure
+local sim), more onboarding graduations, Stage 5 co-op.

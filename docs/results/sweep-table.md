@@ -174,6 +174,8 @@ Multi-game training traded per-game peak for cross-game generalization. First ev
 for the Horizon-4 claim.
 
 ## v5 transfer replication: 10_doodle-jump held out — N=5, 2026-07-22
+
+**INVALID — serving failure, not a measurement:** the student's legal_rate was 0.00 (every decide() errored; adapter registration silently failed on a missing project id). Retained for honesty; superseded by the rerun below.
 ```
 ==== DUEL 10_doodle-jump (15 steps x5, metric=primary_score) ====
   planner   (planner ): primary_score=107±0.00  scores=[107.0, 107.0, 107.0, 107.0, 107.0]  legal_rate=1.00  [raw_state]

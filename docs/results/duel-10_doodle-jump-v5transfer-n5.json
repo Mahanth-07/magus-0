@@ -1,0 +1,43 @@
+{
+  "game": "10_doodle-jump",
+  "steps": 15,
+  "repeats": 5,
+  "primary_metric": "primary_score",
+  "planner": {
+    "provider": "planner",
+    "score": 107.0,
+    "mean": 107.0,
+    "std": 0.0,
+    "min": 107.0,
+    "max": 107.0,
+    "scores": [
+      107.0,
+      107.0,
+      107.0,
+      107.0,
+      107.0
+    ],
+    "legal_action_rate": 1.0,
+    "steps": 15.0,
+    "channel": "raw_state"
+  },
+  "baseline": {
+    "provider": "together",
+    "score": 0.0,
+    "mean": 0.0,
+    "std": 0.0,
+    "min": 0.0,
+    "max": 0.0,
+    "scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "legal_action_rate": 0.0,
+    "steps": 15.0,
+    "channel": "screenshot"
+  },
+  "winner": "planner"
+}

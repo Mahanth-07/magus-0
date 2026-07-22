@@ -172,3 +172,11 @@ v4 scored 6.6±2.8 vs the planner's 3±0 — the student BEAT the planner on a g
 never saw, while regressing on trained games (2048 44 vs v1's 68; doodle 37 vs 106.8).
 Multi-game training traded per-game peak for cross-game generalization. First evidence
 for the Horizon-4 claim.
+
+## v5 transfer replication: 10_doodle-jump held out — N=5, 2026-07-22
+```
+==== DUEL 10_doodle-jump (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=107±0.00  scores=[107.0, 107.0, 107.0, 107.0, 107.0]  legal_rate=1.00  [raw_state]
+  baseline  (together): primary_score=0±0.00  scores=[0.0, 0.0, 0.0, 0.0, 0.0]  legal_rate=0.00  [screenshot]
+  winner: planner
+```

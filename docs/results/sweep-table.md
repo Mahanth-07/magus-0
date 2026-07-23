@@ -220,3 +220,12 @@ for the Horizon-4 claim.
   baseline  (gateway ): primary_score=8±0.00  scores=[8.0, 8.0, 8.0, 8.0, 8.0]  legal_rate=1.00  [screenshot]
   winner: baseline
 ```
+
+**CMA-ES round-1 verdict — NULL, with a precise diagnosis:** the optimizer returned
+default weights on all 3 games (sim_fitness == baseline exactly); the duels above
+therefore measure unchanged-planner variance, not tuning. Root causes: (a) doodle's
+induced model yields ZERO score under rollout — it cannot express scoring dynamics
+forward, so no scoring function can help; (b) 2048/core-ball landscapes flat at this
+budget (240 evals, 8 rollouts × 25 steps). Inert weight files removed. Round-2 fixes
+queued: fitness against models with primary_accuracy 1.0 only, larger budgets, longer
+rollouts, and feature set that can matter at depth-3 argmax.

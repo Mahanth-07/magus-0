@@ -102,6 +102,50 @@ def test_induce_succeeds_first_try_with_correct_model(tmp_path):
     assert saved_report["overall"] >= 0.9
 
 
+def test_report_records_planning_grade_for_induced_model(tmp_path):
+    result = induce_world_model(
+        "synthetic:grid", _store(tmp_path), profile=_grid_profile(),
+        synthesizer=lambda s, u: f"```python\n{GRID_MODEL}\n```",
+        out_dir=tmp_path / "wm", max_iterations=1, threshold=0.9, seed=5,
+    )
+    assert result.status == "INDUCED"
+    saved = json.loads(
+        (tmp_path / "wm" / "synthetic:grid" / "report.json").read_text())
+    assert saved["planning_grade"] is True
+    assert saved["scoring_rollouts_frac"] > 0
+    assert saved["mean_rollout_score"] > 0
+    assert result.planning["planning_grade"] is True
+
+
+def test_report_records_planning_grade_for_failed_but_parsing_model(tmp_path):
+    # FAILED under the dual gate, but the source parses -> rollouts still run
+    result = induce_world_model(
+        "synthetic:grid", _store(tmp_path), profile=_grid_profile(),
+        synthesizer=lambda s, u: f"```python\n{BROKEN_MODEL}\n```",
+        out_dir=tmp_path / "wm", max_iterations=1, threshold=0.9, seed=5,
+    )
+    assert result.status == "FAILED"
+    saved = json.loads(
+        (tmp_path / "wm" / "synthetic:grid" / "report.json").read_text())
+    assert saved["planning_grade"] is False
+    assert saved["scoring_rollouts_frac"] == 0.0
+    assert saved["mean_rollout_score"] <= 0.0
+
+
+def test_report_planning_grade_zeros_when_source_fails_gate(tmp_path):
+    result = induce_world_model(
+        "synthetic:grid", _store(tmp_path), profile=_grid_profile(),
+        synthesizer=lambda s, u: "```python\nimport os\n```",
+        out_dir=tmp_path / "wm", max_iterations=1, threshold=0.9, seed=5,
+    )
+    assert result.status == "FAILED"
+    saved = json.loads(
+        (tmp_path / "wm" / "synthetic:grid" / "report.json").read_text())
+    assert saved["planning_grade"] is False
+    assert saved["mean_rollout_score"] == 0.0
+    assert saved["scoring_rollouts_frac"] == 0.0
+
+
 def test_induce_repairs_with_counterexamples(tmp_path):
     responses = [f"```python\n{BROKEN_MODEL}\n```", f"```python\n{GRID_MODEL}\n```"]
     prompts = []

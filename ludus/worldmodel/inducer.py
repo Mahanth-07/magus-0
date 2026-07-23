@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ludus.onboarding.diff import flatten_state, is_tick_path
+from ludus.planning.tuning import planning_grade
 from ludus.onboarding.profile import GameProfile
 from ludus.worldmodel.canonical import canonicalize
 from ludus.worldmodel.sandbox import ALLOWED_IMPORTS, check_source
@@ -55,6 +56,7 @@ class InductionResult:
     report: ValidationReport
     iterations: int
     model_path: Path | None = None
+    planning: dict | None = None    # planning-grade metrics (see tuning.planning_grade)
 
 
 def extract_code(text: str) -> str:
@@ -207,6 +209,22 @@ def induce_world_model(
         counterexamples = train_report.counterexamples
 
     status = "INDUCED" if (train_report.passed and report.passed) else "FAILED"
+    # Planning-grade: validation asks "does it predict observed transitions?";
+    # this asks "can the planner GENERATE scoring dynamics inside it?" (CMA-ES
+    # round 1: doodle passed the former, scored 0.0 on the latter). Run
+    # whenever the source passes the sandbox gate — even a FAILED model's
+    # forward behavior is informative. Exceptions guard to zeros.
+    planning = {"mean_rollout_score": 0.0, "scoring_rollouts_frac": 0.0,
+                "planning_grade": False}
+    if source and not check_source(source):
+        try:
+            planning = planning_grade(
+                source, [t.before for t in holdout],
+                sorted(profile.controls),
+                primary_metric=profile.primary_metric,
+                higher_is_better=profile.higher_is_better)
+        except Exception:
+            pass
     model_dir = Path(out_dir) / game_id
     model_dir.mkdir(parents=True, exist_ok=True)
     (model_dir / "model.py").write_text(source or "# no source produced\n")
@@ -219,7 +237,9 @@ def induce_world_model(
         "per_field": report.per_field, "n_cases": report.n_cases,
         "iterations": iterations, "threshold": threshold,
         "train_size": len(train), "holdout_size": len(holdout),
+        **planning,
     }, indent=2) + "\n")
     return InductionResult(status=status, source=source, report=report,
                            iterations=iterations,
-                           model_path=model_dir / "model.py")
+                           model_path=model_dir / "model.py",
+                           planning=planning)

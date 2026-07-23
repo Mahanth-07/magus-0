@@ -9,7 +9,8 @@ import pytest
 
 from ludus.onboarding.profile import GameProfile
 from ludus.planning.planner import DEFAULT_WEIGHTS
-from ludus.planning.tuning import fitness, simulate_rollout, tune_game
+from ludus.planning.tuning import (fitness, planning_grade, simulate_rollout,
+                                   tune_game)
 from ludus.worldmodel.transitions import Transition, TransitionStore
 
 GRID_MODEL = '''
@@ -98,6 +99,62 @@ def test_fitness_is_mean_over_start_states():
                 weights=dict(DEFAULT_WEIGHTS), primary_metric="score",
                 higher_is_better=True, steps=3, depth=2, beam=4)
     assert f == 5.0  # every rollout terminates after one +5 step
+
+
+COPY_MODEL = '''
+import copy
+
+def predict(state, action):
+    return copy.deepcopy(state)
+'''
+
+
+def test_planning_grade_true_for_model_that_scores_forward():
+    pg = planning_grade(
+        GRID_MODEL, [_state(2, 2, 3, 2), _state(0, 0, 0, 4)], ACTIONS,
+        primary_metric="score", higher_is_better=True,
+        rollouts=2, steps=6, depth=2, beam=8)
+    assert pg["planning_grade"] is True
+    assert pg["scoring_rollouts_frac"] > 0
+    assert pg["mean_rollout_score"] > 0
+
+
+def test_planning_grade_false_for_copy_state_model():
+    # predicts "nothing changes" perfectly — validation-grade could pass,
+    # but no rollout can ever generate score: planning-grade must be False
+    pg = planning_grade(
+        COPY_MODEL, [_state(2, 2, 3, 2)], ACTIONS,
+        primary_metric="score", higher_is_better=True,
+        rollouts=1, steps=3, depth=2, beam=4)
+    assert pg == {"mean_rollout_score": 0.0, "scoring_rollouts_frac": 0.0,
+                  "planning_grade": False}
+
+
+def test_planning_grade_empty_start_states_is_zeros():
+    pg = planning_grade(
+        GRID_MODEL, [], ACTIONS,
+        primary_metric="score", higher_is_better=True)
+    assert pg == {"mean_rollout_score": 0.0, "scoring_rollouts_frac": 0.0,
+                  "planning_grade": False}
+
+
+def test_planning_grade_broken_source_guards_to_zeros():
+    pg = planning_grade(
+        "this is not python (", [_state(2, 2, 3, 2)], ACTIONS,
+        primary_metric="score", higher_is_better=True,
+        rollouts=1, steps=2, depth=2, beam=4)
+    assert pg == {"mean_rollout_score": 0.0, "scoring_rollouts_frac": 0.0,
+                  "planning_grade": False}
+
+
+def test_planning_grade_caps_rollouts_at_budget():
+    starts = [_state(2, 2, 3, 2)] * 5
+    pg = planning_grade(
+        GRID_MODEL, starts, ACTIONS,
+        primary_metric="score", higher_is_better=True,
+        rollouts=2, steps=2, depth=2, beam=4)
+    # only 2 of the 5 starts run; every run scores identically
+    assert pg["scoring_rollouts_frac"] in (0.0, 1.0)
 
 
 def _tuning_dirs(tmp_path, status="INDUCED", n_transitions=6):

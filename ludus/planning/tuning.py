@@ -85,6 +85,48 @@ def simulate_rollout(
     return sign * (_metric(state, primary_metric) - initial)
 
 
+def planning_grade(
+    model_source: str,
+    start_states: list[dict],
+    actions: list[str],
+    *,
+    primary_metric: str,
+    higher_is_better: bool,
+    rollouts: int = 6,
+    steps: int = 15,
+    depth: int = 2,
+    beam: int = 8,
+) -> dict:
+    """Can the planner GENERATE score inside this model, not just predict it?
+
+    CMA-ES round-1 finding: doodle-jump's induced model passes the dual
+    validation gate (predicts observed transitions) yet scores 0.0 under
+    forward planner rollout — validation-grade is not planning-grade. This
+    measures the latter: forward planner self-play under DEFAULT_WEIGHTS from
+    up to `rollouts` start states. A rollout "scores" when its sign-adjusted
+    primary-metric delta is positive. Any exception guards to zeros — this is
+    a recorded metric, never a crash.
+    """
+    scores: list[float] = []
+    for state in start_states[:rollouts]:
+        try:
+            scores.append(simulate_rollout(
+                model_source, state, actions,
+                weights=dict(DEFAULT_WEIGHTS),
+                primary_metric=primary_metric,
+                higher_is_better=higher_is_better,
+                steps=steps, depth=depth, beam=beam))
+        except Exception:
+            scores.append(0.0)
+    if not scores:
+        return {"mean_rollout_score": 0.0, "scoring_rollouts_frac": 0.0,
+                "planning_grade": False}
+    frac = sum(1 for s in scores if s > 0) / len(scores)
+    return {"mean_rollout_score": sum(scores) / len(scores),
+            "scoring_rollouts_frac": frac,
+            "planning_grade": frac > 0}
+
+
 def fitness(
     model_source: str,
     start_states: list[dict],

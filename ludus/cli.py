@@ -97,6 +97,10 @@ def cmd_induce(game: str, profile_path=None, data_dir="data",
           f"holdout accuracy {result.report.overall:.3f} "
           f"(primary_score {result.report.primary_accuracy:.2f}) "
           f"({result.report.n_cases} cases) -> {result.model_path}")
+    pg = result.planning or {}
+    print(f"planning-grade: {'yes' if pg.get('planning_grade') else 'no'} "
+          f"(mean rollout {pg.get('mean_rollout_score', 0.0):.2f}, "
+          f"scoring frac {pg.get('scoring_rollouts_frac', 0.0):.2f})")
     worst = sorted(result.report.per_field.items(), key=lambda kv: kv[1])[:5]
     for path, acc in worst:
         print(f"  worst field: {path} = {acc:.2f}")

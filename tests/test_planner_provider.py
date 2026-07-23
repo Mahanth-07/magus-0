@@ -88,6 +88,29 @@ def test_provider_refuses_missing_model_file(tmp_path):
         PlannerProvider(_grid_profile(), worldmodels_dir=root)
 
 
+def test_provider_without_weights_file_has_no_weights(tmp_path):
+    root = _model_dir(tmp_path)
+    provider = PlannerProvider(_grid_profile(), worldmodels_dir=root)
+    assert provider._weights is None
+
+
+def test_provider_loads_tuned_weights(tmp_path):
+    root = _model_dir(tmp_path)
+    tuned = {"primary": 1.2, "change": 0.4, "terminal": -0.5,
+             "secondary": 0.1, "length": 0.0}
+    (root / "synthetic:grid" / "planner_weights.json").write_text(json.dumps(
+        {"weights": tuned, "sim_fitness": 12.0,
+         "baseline_sim_fitness": 10.0, "iterations": 3}))
+    provider = PlannerProvider(_grid_profile(), worldmodels_dir=root, depth=3)
+    assert provider._weights == tuned
+    state = {"status": "playing", "metrics": {"score": 0, "steps": 0},
+             "game_state": {"player": {"x": 2, "y": 2},
+                            "environment": {"goal": {"x": 3, "y": 2}}}}
+    decision = provider.decide(_ctx(state))
+    assert decision.actions  # still a valid Decision under tuned weights
+    assert decision.actions[0] == "move_right"
+
+
 def test_provider_end_to_end_scores_in_real_episode(tmp_path):
     """The M3 offline acceptance: planner over an induced model beats random.
     From spawn (2,2) with goal (3,2), 5 steps must collect >= 10 score."""

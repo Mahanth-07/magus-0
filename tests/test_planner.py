@@ -1,6 +1,6 @@
 """Beam search over a sandboxed induced model."""
 
-from ludus.planning.planner import rank_macros
+from ludus.planning.planner import DEFAULT_WEIGHTS, rank_macros
 
 # Correct gridworld world model (same dynamics as ludus/synthetic.py).
 GRID_MODEL = '''
@@ -97,6 +97,102 @@ def predict(state, action):
                          depth=2, beam=4, top_k=4)
     assert ranked[0]["actions"][0] == "shift"
     assert ranked[0]["changes_state"] is True
+
+
+DEADLOCK_MODEL = '''
+import copy
+
+def predict(state, action):
+    out = copy.deepcopy(state)
+    if action == "shift":
+        out["game_state"]["player"]["x"] += 1
+    return out
+'''
+
+DEADLOCK_STATE = {"status": "playing", "metrics": {"score": 0, "steps": 0},
+                  "game_state": {"player": {"x": 0, "y": 0}}}
+
+
+def test_default_weights_match_no_weights_exactly():
+    """weights=None and the explicit default dict must produce IDENTICAL
+    rankings — the regression gate for the CMA-ES parameterization."""
+    kwargs = dict(primary_metric="score", higher_is_better=True,
+                  depth=3, beam=16, top_k=6)
+    baseline = rank_macros(GRID_MODEL, _state(2, 2, 4, 3), ACTIONS, **kwargs)
+    weighted = rank_macros(GRID_MODEL, _state(2, 2, 4, 3), ACTIONS,
+                           weights=dict(DEFAULT_WEIGHTS), **kwargs)
+    assert weighted == baseline
+
+
+def test_default_weights_constant_is_current_behavior():
+    assert DEFAULT_WEIGHTS == {"primary": 1.0, "change": 0.0, "terminal": 0.0,
+                               "secondary": 0.0, "length": 0.0}
+
+
+def test_change_weight_steers_zero_reward_ties():
+    # deadlock scenario: all primary rewards 0. A positive change weight must
+    # SCORE state-changing macros above no-ops (not just tie-break them).
+    ranked = rank_macros(DEADLOCK_MODEL, DEADLOCK_STATE, ["noop", "shift"],
+                         primary_metric="score", higher_is_better=True,
+                         depth=2, beam=4, top_k=6,
+                         weights={"primary": 1.0, "change": 1.0})
+    assert ranked[0]["actions"] == ["shift"]
+    assert ranked[0]["changes_state"] is True
+    # a pure no-op macro must rank below every shift-containing macro
+    noop_ranks = [i for i, r in enumerate(ranked)
+                  if all(a == "noop" for a in r["actions"])]
+    shift_ranks = [i for i, r in enumerate(ranked)
+                   if "shift" in r["actions"]]
+    assert max(shift_ranks) < min(noop_ranks)
+
+
+def test_terminal_weight_penalizes_dying():
+    dying_model = '''
+import copy
+
+def predict(state, action):
+    out = copy.deepcopy(state)
+    if action == "move_right":
+        out["metrics"]["score"] += 5
+        out["status"] = "terminal"
+    return out
+'''
+    # unweighted, move_right (+5 then dead) wins; terminal=-10 flips it
+    ranked = rank_macros(dying_model, _state(2, 2, 3, 2),
+                         ["move_right", "move_left"],
+                         primary_metric="score", higher_is_better=True,
+                         depth=2, beam=4, top_k=4,
+                         weights={"primary": 1.0, "terminal": -10.0})
+    assert ranked[0]["actions"][0] == "move_left"
+
+
+def test_secondary_weight_scores_non_primary_metrics():
+    coin_model = '''
+import copy
+
+def predict(state, action):
+    out = copy.deepcopy(state)
+    if action == "collect":
+        out["metrics"]["coins"] += 1
+    return out
+'''
+    state = {"status": "playing", "metrics": {"score": 0, "coins": 0},
+             "game_state": {"player": {"x": 0}}}
+    ranked = rank_macros(coin_model, state, ["collect", "noop"],
+                         primary_metric="score", higher_is_better=True,
+                         depth=2, beam=4, top_k=4,
+                         weights={"primary": 1.0, "secondary": 1.0})
+    assert ranked[0]["actions"] == ["collect", "collect"]
+
+
+def test_length_weight_prefers_longer_macros():
+    # zero-reward everywhere: the default tie-break prefers SHORT macros; a
+    # positive length weight must flip that.
+    ranked = rank_macros(GRID_MODEL, _state(0, 0, 4, 4), ACTIONS,
+                         primary_metric="score", higher_is_better=True,
+                         depth=2, beam=8, top_k=4,
+                         weights={"primary": 1.0, "length": 1.0})
+    assert all(len(r["actions"]) == 2 for r in ranked)
 
 
 def test_terminal_branches_are_not_expanded():

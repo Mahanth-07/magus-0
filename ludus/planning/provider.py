@@ -52,6 +52,12 @@ class PlannerProvider:
                 f"— corrupted artifacts?); re-run: python -m ludus.cli induce "
                 f"{profile.game_id}")
         self._source = model_path.read_text()
+        self._weights = None
+        weights_path = model_dir / "planner_weights.json"
+        if weights_path.exists():
+            self._weights = json.loads(weights_path.read_text()).get("weights")
+            log.info("loaded tuned planner weights for %s: %s",
+                     profile.game_id, self._weights)
 
     def available(self) -> bool:
         return True
@@ -81,6 +87,7 @@ class PlannerProvider:
             primary_metric=self._profile.primary_metric,
             higher_is_better=self._profile.higher_is_better,
             depth=self._depth, beam=self._beam, top_k=self._top_k,
+            weights=self._weights,
         )
         if not ranked:
             return self._fallback("world model produced no predictions")

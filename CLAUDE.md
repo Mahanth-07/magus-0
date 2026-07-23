@@ -469,3 +469,13 @@ Two unblock paths: (a) user dashboard-deploys the doodle adapter, gives served
 name, I run the N=5 duel; (b) fresh-context session cracks the BF16-lineage attach.
 HIGHER-VALUE roadmap items need NO Together: CMA-ES teacher tuning (Horizon 2, pure
 local sim), more onboarding graduations, Stage 5 co-op.
+
+### CMA-ES round 1 (2026-07-23): NULL — optimizer found nothing
+Harness works (ludus/planning/tuning.py, `tune` CLI, 402 tests) but weights
+came back == defaults on all 3 games; doodle sim rollouts score 0.0 (induced
+model can't express scoring forward — sim-planning needs model quality beyond
+the dual gate). Weight files removed (were inert). Round-2 levers: tune only
+where primary_accuracy==1.0 AND sim rollouts score >0 at baseline; bigger
+budget; richer features; or pivot Horizon-2 effort to closed-loop RECAP
+instead. Real-duel re-measurements captured en passant: 2048 56±0 (low mode),
+doodle 75.6±29, core-ball 4±2 — all within known variance.

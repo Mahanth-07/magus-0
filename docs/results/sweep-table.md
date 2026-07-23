@@ -182,3 +182,50 @@ for the Horizon-4 claim.
   baseline  (together): primary_score=0±0.00  scores=[0.0, 0.0, 0.0, 0.0, 0.0]  legal_rate=0.00  [screenshot]
   winner: planner
 ```
+
+## CMA-ES teacher tuning (2026-07-23): sim tuning + real N=5 validation
+
+### 01_2048
+```
+  "baseline_sim_fitness": 8.5,
+  "iterations": 1
+}
+-- real duel (tuned planner vs gateway, N=5):
+==== DUEL 01_2048 (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=56±0.00  scores=[56.0, 56.0, 56.0, 56.0, 56.0]  legal_rate=1.00  [raw_state]
+  baseline  (gateway ): primary_score=40±15.39  scores=[24.0, 56.0, 60.0, 24.0, 36.0]  legal_rate=1.00  [screenshot]
+  winner: planner
+```
+
+### 10_doodle-jump
+```
+  "baseline_sim_fitness": 0.0,
+  "iterations": 1
+}
+-- real duel (tuned planner vs gateway, N=5):
+==== DUEL 10_doodle-jump (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=75.6±28.98  scores=[30.0, 67.0, 107.0, 67.0, 107.0]  legal_rate=1.00  [raw_state]
+  baseline  (gateway ): primary_score=29.6±19.11  scores=[14.0, 14.0, 53.0, 53.0, 14.0]  legal_rate=1.00  [screenshot]
+  winner: planner
+```
+
+### 08_core-ball
+```
+  "baseline_sim_fitness": 2.625,
+  "iterations": 1
+}
+-- real duel (tuned planner vs gateway, N=5):
+==== DUEL 08_core-ball (15 steps x5, metric=primary_score) ====
+  planner   (planner ): primary_score=4±2.00  scores=[3.0, 3.0, 3.0, 8.0, 3.0]  legal_rate=1.00  [raw_state]
+  baseline  (gateway ): primary_score=8±0.00  scores=[8.0, 8.0, 8.0, 8.0, 8.0]  legal_rate=1.00  [screenshot]
+  winner: baseline
+```
+
+**CMA-ES round-1 verdict — NULL, with a precise diagnosis:** the optimizer returned
+default weights on all 3 games (sim_fitness == baseline exactly); the duels above
+therefore measure unchanged-planner variance, not tuning. Root causes: (a) doodle's
+induced model yields ZERO score under rollout — it cannot express scoring dynamics
+forward, so no scoring function can help; (b) 2048/core-ball landscapes flat at this
+budget (240 evals, 8 rollouts × 25 steps). Inert weight files removed. Round-2 fixes
+queued: fitness against models with primary_accuracy 1.0 only, larger budgets, longer
+rollouts, and feature set that can matter at depth-3 argmax.

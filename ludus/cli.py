@@ -102,6 +102,26 @@ def cmd_induce(game: str, profile_path=None, data_dir="data",
         print(f"  worst field: {path} = {acc:.2f}")
 
 
+def cmd_tune(game: str, iterations=40, rollouts=8, steps=25,
+             max_evals=None, seed=7, profile_path=None, data_dir="data",
+             worldmodels_dir="worldmodels") -> dict:
+    """CMA-ES over planner scoring weights inside the induced world model."""
+    from ludus.planning.tuning import tune_game
+    result = tune_game(game, iterations=iterations, rollouts=rollouts,
+                       steps=steps, max_evals=max_evals, seed=seed,
+                       profile_path=profile_path, data_dir=data_dir,
+                       worldmodels_dir=worldmodels_dir)
+    dest = Path(worldmodels_dir) / game / "planner_weights.json"
+    print(f"tuned {game} over {result['iterations']} CMA-ES generation(s):")
+    print(f"  baseline sim fitness: {result['baseline_sim_fitness']:g}")
+    print(f"  tuned sim fitness   : {result['sim_fitness']:g}")
+    print(f"  weights             : {result['weights']}")
+    print(f"  -> {dest}")
+    print("  NOTE: sim gains are candidates only — validate with a real duel "
+          "before believing them")
+    return result
+
+
 def _run_one_side(game: str, label: str, provider, adapter, profile,
                   steps: int, runs_dir: str, headless: bool,
                   repeat_idx: int = 0) -> dict:
@@ -209,7 +229,8 @@ def cmd_duel(game: str, profile_path=None, worldmodels_dir="worldmodels",
 def main() -> None:
     _load_dotenv()
 
-    if len(sys.argv) > 1 and sys.argv[1] in ("onboard", "explore", "induce", "duel"):
+    if len(sys.argv) > 1 and sys.argv[1] in ("onboard", "explore", "induce",
+                                             "duel", "tune"):
         cmd = sys.argv[1]
         ap = argparse.ArgumentParser(prog=f"ludus {cmd}")
         ap.add_argument("game")
@@ -238,6 +259,22 @@ def main() -> None:
             args = ap.parse_args(sys.argv[2:])
             cmd_induce(args.game, profile_path=args.profile, data_dir=args.data_dir,
                        out_dir=args.out, max_iterations=args.iterations)
+        elif cmd == "tune":
+            ap.add_argument("--profile", type=Path, default=None)
+            ap.add_argument("--data-dir", default="data")
+            ap.add_argument("--worldmodels", default="worldmodels")
+            ap.add_argument("--iterations", type=int, default=40)
+            ap.add_argument("--rollouts", type=int, default=8)
+            ap.add_argument("--steps", type=int, default=25)
+            ap.add_argument("--max-evals", type=int, default=None,
+                            help="cap total fitness evaluations (runtime budget)")
+            ap.add_argument("--seed", type=int, default=7)
+            args = ap.parse_args(sys.argv[2:])
+            cmd_tune(args.game, iterations=args.iterations,
+                     rollouts=args.rollouts, steps=args.steps,
+                     max_evals=args.max_evals, seed=args.seed,
+                     profile_path=args.profile, data_dir=args.data_dir,
+                     worldmodels_dir=args.worldmodels)
         else:
             ap.add_argument("--profile", type=Path, default=None)
             ap.add_argument("--worldmodels", default="worldmodels")

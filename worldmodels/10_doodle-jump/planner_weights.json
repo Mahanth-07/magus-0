@@ -1,0 +1,12 @@
+{
+  "weights": {
+    "primary": 1.0,
+    "change": 0.0,
+    "terminal": 0.0,
+    "secondary": 0.0,
+    "length": 0.0
+  },
+  "sim_fitness": 0.0,
+  "baseline_sim_fitness": 0.0,
+  "iterations": 1
+}

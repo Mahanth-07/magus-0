@@ -42,5 +42,8 @@
   "iterations": 1,
   "threshold": 0.9,
   "train_size": 15,
-  "holdout_size": 8
+  "holdout_size": 8,
+  "mean_rollout_score": 2.8333333333333335,
+  "scoring_rollouts_frac": 1.0,
+  "planning_grade": true
 }

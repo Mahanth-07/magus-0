@@ -229,3 +229,50 @@ forward, so no scoring function can help; (b) 2048/core-ball landscapes flat at 
 budget (240 evals, 8 rollouts × 25 steps). Inert weight files removed. Round-2 fixes
 queued: fitness against models with primary_accuracy 1.0 only, larger budgets, longer
 rollouts, and feature set that can matter at depth-3 argmax.
+
+## Planning-grade audit (2026-07-22)
+
+Validation-grade (dual gate: predicts observed transitions) vs planning-grade
+(forward planner rollout inside the model can generate positive sign-adjusted
+primary-metric delta; `planning_grade` in ludus/planning/tuning.py, default
+weights, 6 rollouts x 15 steps, depth 2, beam 8, inducer holdout split).
+Backfilled into every `worldmodels/*/report.json` by
+`scripts/backfill_planning_grade.py`.
+
+| game | validation overall/primary | planning-grade | mean rollout |
+| --- | --- | --- | --- |
+| 01_2048 | 0.891 / 1.00 (INDUCED) | yes | 6.00 |
+| 02_another-gentlemans-adventure | 0.910 / 1.00 (INDUCED) | no | 0.00 |
+| 03_astray | 0.859 / 0.82 (FAILED) | no | 0.00 |
+| 04_boxel-rebound | 0.807 / 0.00 (FAILED) | yes | 0.22 |
+| 05_breakout | 0.960 / 0.96 (INDUCED) | no | 0.00 |
+| 06_captaincallisto | 0.766 / 1.00 (INDUCED) | no | 0.00 |
+| 08_core-ball | 0.993 / 1.00 (INDUCED) | yes | 2.83 |
+| 09_cubefield | 0.801 / 0.06 (FAILED) | yes | 6000.00 |
+| 10_doodle-jump | 0.946 / 1.00 (INDUCED) | no | 0.00 |
+| 11_edge-surf | 1.000 / 1.00 (INDUCED) | no | 0.00 |
+| 13_flappy-bird | 0.776 / 1.00 (INDUCED) | no | 0.00 |
+| 14_geodash | 0.790 / 0.28 (FAILED) | yes | 15.00 |
+| 15_google-snake | 0.896 / 1.00 (INDUCED) | no | 0.00 |
+| 16_hextris | 0.917 / 1.00 (INDUCED) | no | 0.00 |
+| 17_mario-game | 0.947 / 1.00 (INDUCED) | no | 0.00 |
+| 18_minecraft-clone-glm | 0.939 / 1.00 (INDUCED) | no | 0.00 |
+| 21_ns-shaft | 0.736 / 1.00 (FAILED) | no | 0.00 |
+| 22_ovo | 0.869 / 1.00 (INDUCED) | no | 0.00 |
+| 24_restless-wing-syndrome | 0.890 / 0.72 (FAILED) | no | 0.00 |
+| 27_stack | 0.973 / 1.00 (INDUCED) | yes | 1.83 |
+| 28_temple-run-2 | 0.810 / 0.00 (FAILED) | yes | 255.00 |
+| 29_tetris | 0.000 / 0.00 (FAILED) | no | 0.00 |
+| 31_wolf3d | 0.960 / 1.00 (INDUCED) | no | 0.00 |
+| 32_wordle | 0.952 / 1.00 (INDUCED) | no | 0.00 |
+| 33_worlds-hardest-game | 0.950 / 1.00 (INDUCED) | no | 0.00 |
+| synthetic:grid | 0.990 / 1.00 (INDUCED) | yes | 13.33 |
+
+8/26 planning-grade. Read the two quadrants carefully: doodle-jump is the
+canonical validation-yes/planning-no case (the CMA-ES round-1 diagnosis, now
+recorded), and it has 14 INDUCED siblings with the same failure mode. The four
+FAILED-but-planning-yes models (boxel, cubefield, geodash, temple-run-2) score
+in rollout precisely because their primary-metric predictions are WRONG
+(primary 0.00-0.28) — hallucinated reward, not usable dynamics. Only models
+with BOTH gates (2048, core-ball, stack, synthetic:grid) are candidates for
+in-model tuning (round-2 lever).
